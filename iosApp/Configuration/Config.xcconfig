@@ -1,0 +1,7 @@
+TEAM_ID=
+
+PRODUCT_NAME=handball_support
+PRODUCT_BUNDLE_IDENTIFIER=de.exhumedo.kmp.handball_support.handball_support$(TEAM_ID)
+
+CURRENT_PROJECT_VERSION=1
+MARKETING_VERSION=1.0
