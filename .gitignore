@@ -1,0 +1,55 @@
+# General Kotlin/Java
+*.class
+*.log
+*.tmp
+*.tmp_casefits
+.kotlin
+#*.war
+#*.jar
+#*.nar
+#*.ear
+#*.zip
+#*.tar.gz
+#*.rar
+
+# Gradle files
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+build/
+# build/generated-sources/
+# build/generated-Sprout-sources/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# Key files for KMP projects:
+# iOS
+ios/
+ios/Pods/
+ios/build/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+
+# Web
+
+# Desktop
+
+# Server
+
+# Other potential temporary/generated files
+**/.DS_Store # Added for macOS for completeness
+.metadata/
