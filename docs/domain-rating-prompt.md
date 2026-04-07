@@ -1,40 +1,92 @@
-# Handball Table Official Evaluation Domain Prompt
+# Generator-Grade Prompt: Handball Table Official Evaluation Domain
 
-## Objective
+## Role
 
-Generate the complete production-ready domain layer for a Handball Table Official Evaluation application in Kotlin Multiplatform.
+You are a senior Kotlin developer and Domain-Driven Design expert.
 
-The generated code must match the target model described in this document exactly.
+Generate the complete production-ready domain layer for a Handball Table Official Evaluation application built with Kotlin Multiplatform.
 
-## Priority Order
+## Source Of Truth
 
-If any parts of this prompt appear to conflict, use this order of precedence:
+This document is the source of truth.
 
-1. File-by-file specifications in **Detailed Specifications**
-2. **Cross-Cutting Rules**
-3. **Package Structure**
-4. **Expected Usage**
-5. Introductory/background text
+If any parts of the prompt appear to conflict, use this precedence order:
 
-Do not infer requirements from older code or earlier iterations. This document is the source of truth.
+1. **Detailed Specifications**
+2. **Deliverables**
+3. **Cross-Cutting Rules**
+4. **Examples**
+5. **Background text**
+
+Do not infer requirements from earlier iterations, repository history, or generic DDD preferences when they conflict with this document.
+
+## Goal
+
+Generate a pure Kotlin domain model for evaluating a table official team in a handball game.
+
+The generated code must:
+
+- compile in `shared/src/commonMain`
+- be framework-free
+- enforce the domain invariants stated below
+- match the package structure exactly
+- be accompanied by focused common tests for the domain invariants
+
+## Scope
+
+The domain covers:
+
+- people participating in a game context
+- contextual official roles
+- referee pair assignment
+- table official team assignment
+- evaluation criteria and scoring
+- one completed performance evaluation
+- repository port definitions
+
+## Non-Goals
+
+Do **not** generate or introduce:
+
+- repository implementations
+- database models
+- DTOs or API contracts
+- UI models
+- serialization annotations
+- framework-specific code
+- networking code
+- dependency injection setup
+- draft/submitted workflow
+- secretary role
+- license number handling
+- dynamic or database-driven evaluation criteria
 
 ## Technical Constraints
 
-- Code lives in `shared/src/commonMain`
-- Base package is `de.exhumedo.kmp.handball_support.domain.rating`
-- Pure Kotlin only
-- No framework dependencies
+- Language: Kotlin Multiplatform
+- Source set: `shared/src/commonMain`
+- Test source set: `shared/src/commonTest`
+- Base package: `de.exhumedo.kmp.handball_support.domain.rating`
 - Allowed imports:
   - Kotlin standard library
-  - sibling imports inside `de.exhumedo.kmp.handball_support.domain.rating.*`
-- No Android APIs
-- No Spring, Ktor, or serialization libraries
-- No `kotlinx.coroutines` imports
-- Immutable properties only: `val`
+  - sibling imports under `de.exhumedo.kmp.handball_support.domain.rating.*`
+- No imports from:
+  - Android SDK
+  - Spring
+  - Ktor
+  - `kotlinx.coroutines`
+  - serialization libraries
+  - any third-party framework
 
-## What To Generate
+Notes:
 
-Generate complete, compilable Kotlin source files for:
+- `kotlin.time.Clock` is allowed
+- Kotlin stdlib UUID support is allowed
+- `suspend` is allowed because it is a Kotlin language feature
+
+## Deliverables
+
+Generate exactly these production files:
 
 ```text
 shared/src/commonMain/kotlin/de/exhumedo/kmp/handball_support/domain/rating/
@@ -54,24 +106,37 @@ shared/src/commonMain/kotlin/de/exhumedo/kmp/handball_support/domain/rating/
     └── PerformanceEvaluationRepository.kt
 ```
 
-Each file must include:
+Also generate focused tests in:
 
-- correct `package` declaration
-- all necessary imports
-- KDoc on every public class, public property, and public function
-- constructor or `init` validation for all stated invariants
+```text
+shared/src/commonTest/kotlin/de/exhumedo/kmp/handball_support/domain/rating/model/
+```
 
-## Domain Model
+The test suite should validate the important domain invariants rather than just constructor happy paths.
 
-- A `Game` is an external reference, not a domain-owned aggregate.
-- A `Person` has identity, but no inherent role.
-- Roles are contextual to a game and are represented through `RoleAssignment`.
-- A `RefereePair` is the collective voter.
+## Cross-Cutting Rules
+
+1. Every property must be immutable: use `val` only.
+2. Every stated invariant must be enforced at construction time or inside the specified factory method.
+3. Illegal states should be unrepresentable wherever practical.
+4. Use KDoc on every public class, public property, and public function.
+5. Use Kotlin idioms and 4-space indentation.
+6. Use `data class` only for value objects and simple structural objects.
+7. Use regular classes for identity-based entities and aggregate roots.
+8. When a domain-specific exception is specified, throw that exception.
+9. `IllegalArgumentException` is acceptable for generic argument validation when explicitly specified or when using `require(...)`.
+10. Do not rename packages, files, or domain concepts defined in this prompt.
+
+## Domain Overview
+
+- A `Game` is an immutable external reference.
+- A `Person` is an identity-based domain entity.
+- Roles are contextual and represented through `RoleAssignment`.
+- A `RefereePair` is the collective evaluator.
 - A `TableOfficialTeam` is the evaluated subject.
-- A `PerformanceEvaluation` is the aggregate root.
-- The evaluation is lifecycle-free: no draft state, no submitted state.
-- Raw criterion values are stored directly.
-- Weighted totals are derived later through `EvaluationScore.toScore(...)` because the weighting rules may change over time.
+- `EvaluationScore` stores raw criterion values.
+- Weighted totals are derived through `toScore(...)` because weighting rules may evolve later.
+- `PerformanceEvaluation` is the aggregate root for one completed evaluation.
 
 ## Detailed Specifications
 
@@ -83,35 +148,47 @@ Define:
 sealed class DomainException(message: String) : Exception(message)
 ```
 
-Subclasses:
+Add exactly these subclasses:
 
 1. `InvalidScoreRange(val value: Int, val min: Int, val max: Int)`
-   Message: `"Score value $value is out of valid range [$min, $max]"`
-2. `DuplicatePersonInTeam(val personId: String)`
-   Message: `"Person with id '$personId' is assigned to multiple roles in the same context"`
-3. `InvalidRoleForPosition(val expectedRole: String, val actualRole: String)`
-   Message: `"Expected role $expectedRole but got $actualRole"`
+   Message:
+   `"Score value $value is out of valid range [$min, $max]"`
 
-Do not add obsolete exceptions for draft/submission workflow or license validation.
+2. `DuplicatePersonInTeam(val personId: String)`
+   Message:
+   `"Person with id '$personId' is assigned to multiple roles in the same context"`
+
+3. `InvalidRoleForPosition(val expectedRole: String, val actualRole: String)`
+   Message:
+   `"Expected role $expectedRole but got $actualRole"`
+
+Do not add any obsolete exception types.
 
 ### `model/Score.kt`
 
-Requirements:
+Type:
 
 - `@JvmInline value class Score(val value: Int)`
+
+Rules:
+
 - valid range is `1..10`
-- throw `DomainException.InvalidScoreRange` if out of range
-- override `toString()` to return the numeric value as text
+- values outside that range must throw `DomainException.InvalidScoreRange`
+- override `toString()` to return the raw numeric value as text
 
 ### `model/EvaluationScore.kt`
 
-This is a value object with exactly these fixed criteria:
+Type:
+
+- `data class`
+
+Fields:
 
 - `appearance: Score`
 - `influence: Score`
 - `teamwork: Score`
 
-Provide:
+Function:
 
 ```kotlin
 fun toScore(
@@ -123,14 +200,18 @@ fun toScore(
 
 Rules:
 
-- `toScore(...)` returns the weighted total
-- raw ratings are stored in the three properties
-- weights may change later, so totals must be derived, not stored
+- the three raw ratings are the persisted source values
+- `toScore(...)` derives a weighted total from those stored values
 - negative weights are invalid and must throw `IllegalArgumentException`
+- criteria are fixed at compile time and are not configurable
 
 ### `model/OfficialRole.kt`
 
-Use a sealed class with nested `data object` subtypes:
+Type:
+
+- sealed class
+
+Nested subtypes:
 
 - `FirstReferee`
 - `SecondReferee`
@@ -147,36 +228,51 @@ Also provide:
 
 ### `model/Person.kt`
 
-Requirements:
+Type:
 
 - regular `class`, not `data class`
-- properties:
-  - `id: String`
-  - `firstName: String`
-  - `lastName: String`
-- validate all three as non-blank
-- provide `fullName`
-- implement `equals()` and `hashCode()` by `id` only
+
+Fields:
+
+- `id: String`
+- `firstName: String`
+- `lastName: String`
+
+Rules:
+
+- all fields must be non-blank
+- expose `fullName`
+- equality and `hashCode()` must be based on `id` only
 - provide a useful `toString()`
-- do not include license number handling
+- do not include license number support
 
 ### `model/RoleAssignment.kt`
 
-Requirements:
+Type:
 
-- `data class RoleAssignment(val person: Person, val role: OfficialRole)`
+- `data class`
+
+Fields:
+
+- `person: Person`
+- `role: OfficialRole`
 
 ### `model/RefereePair.kt`
 
-Requirements:
+Type:
 
-- `data class RefereePair(val firstReferee: RoleAssignment, val secondReferee: RoleAssignment)`
+- `data class`
+
+Fields:
+
+- `firstReferee: RoleAssignment`
+- `secondReferee: RoleAssignment`
 
 Invariants:
 
 - `firstReferee.role` must be `OfficialRole.FirstReferee`
 - `secondReferee.role` must be `OfficialRole.SecondReferee`
-- both persons must be distinct
+- both assigned persons must be distinct
 
 Expose:
 
@@ -189,9 +285,15 @@ Throw:
 
 ### `model/TableOfficialTeam.kt`
 
-Requirements:
+Type:
 
-- `data class TableOfficialTeam(val timeKeeper: RoleAssignment, val scoreKeeper: RoleAssignment, val delegate: RoleAssignment? = null)`
+- `data class`
+
+Fields:
+
+- `timeKeeper: RoleAssignment`
+- `scoreKeeper: RoleAssignment`
+- `delegate: RoleAssignment? = null`
 
 Invariants:
 
@@ -204,46 +306,57 @@ Expose:
 
 - `val members: Set<Person>`
 
-The team consists of timekeeper, scorekeeper, and optional delegate only.
-
 ### `model/Game.kt`
 
-Requirements:
+Type:
 
-- `data class Game(val gameId: String, val date: String, val homeTeam: String, val awayTeam: String, val venue: String)`
-- validate all properties as non-blank
-- treat `Game` as an immutable external reference
+- `data class`
 
-Use string dates intentionally. Do not introduce a date library type here.
+Fields:
+
+- `gameId: String`
+- `date: String`
+- `homeTeam: String`
+- `awayTeam: String`
+- `venue: String`
+
+Rules:
+
+- all fields must be non-blank
+- `Game` is an immutable external reference, not a domain-owned aggregate
+- use strings intentionally for date values
 
 ### `model/PerformanceEvaluation.kt`
 
-Requirements:
+Type:
 
 - regular `class`, not `data class`
-- properties:
-  - `id: String`
-  - `game: Game`
-  - `refereePair: RefereePair`
-  - `tableOfficialTeam: TableOfficialTeam`
-  - `score: EvaluationScore`
-  - `comment: String?`
-  - `createdAt: String`
+
+Fields:
+
+- `id: String`
+- `game: Game`
+- `refereePair: RefereePair`
+- `tableOfficialTeam: TableOfficialTeam`
+- `score: EvaluationScore`
+- `comment: String?`
+- `createdAt: String`
 
 Invariants:
 
 - `id` must be non-blank
 - `createdAt` must be non-blank
-- no person may appear both in the referee pair and the table official team
+- no person may appear both in the referee pair and in the table official team
 
-Equality:
+Rules:
 
 - implement `equals()` and `hashCode()` by `id` only
 - provide a useful `toString()`
+- there is no draft or submitted lifecycle
 
 Factory:
 
-Provide a companion factory:
+Provide a companion factory with this signature:
 
 ```kotlin
 fun create(
@@ -259,43 +372,45 @@ fun create(
 
 Factory rules:
 
-- default `id` should be generated with Kotlin stdlib UUID support
-- `createdAt` must be derived internally with `clock.now().toString()`
+- `id` defaults to a generated Kotlin stdlib UUID
+- `createdAt` must be derived inside the factory with `clock.now().toString()`
 - keep the public constructor explicit with `createdAt: String`
 
 ### `repository/PerformanceEvaluationRepository.kt`
 
-Define a domain port interface with these `suspend` functions:
+Type:
 
-- `save(evaluation: PerformanceEvaluation): PerformanceEvaluation`
-- `findById(id: String): PerformanceEvaluation?`
-- `findByGameId(gameId: String): PerformanceEvaluation?`
-- `findByRefereePairPersonIds(firstRefereeId: String, secondRefereeId: String): List<PerformanceEvaluation>`
-- `existsByGameId(gameId: String): Boolean`
-- `findAll(): List<PerformanceEvaluation>`
+- interface
 
-Notes:
+Methods:
 
-- do not import `kotlinx.coroutines`
-- `suspend` is allowed because it is a Kotlin language feature
+- `suspend fun save(evaluation: PerformanceEvaluation): PerformanceEvaluation`
+- `suspend fun findById(id: String): PerformanceEvaluation?`
+- `suspend fun findByGameId(gameId: String): PerformanceEvaluation?`
+- `suspend fun findByRefereePairPersonIds(firstRefereeId: String, secondRefereeId: String): List<PerformanceEvaluation>`
+- `suspend fun existsByGameId(gameId: String): Boolean`
+- `suspend fun findAll(): List<PerformanceEvaluation>`
 
-## Cross-Cutting Rules
+Do not add implementation details.
 
-1. Use only Kotlin stdlib and sibling domain imports.
-2. Every property must be immutable.
-3. Validate all stated invariants at construction time.
-4. Illegal states must be unrepresentable wherever practical.
-5. Do not introduce obsolete concepts:
-   - secretary
-   - draft/submitted lifecycle
-   - five fixed evaluation criteria
-   - license number handling
-6. Match the package names and source paths exactly.
-7. Prefer domain exceptions for domain invariant failures where specified.
+## Test Expectations
 
-## Expected Usage
+Generate focused common tests that cover at least:
 
-This example is illustrative. If it ever conflicts with the file-by-file specification, the specification wins.
+- invalid `Score` range
+- invalid negative weights in `EvaluationScore.toScore(...)`
+- `Person` blank field validation
+- `Person` identity-based equality
+- invalid roles in `RefereePair`
+- duplicate people in `TableOfficialTeam`
+- optional delegate membership behavior
+- overlap rejection between referee pair and table team
+- identity-based equality in `PerformanceEvaluation`
+- deterministic `createdAt` generation via injected `Clock`
+
+## Example
+
+This example is illustrative only. If it conflicts with the formal specification above, the formal specification wins.
 
 ```kotlin
 val evaluation = PerformanceEvaluation.create(
@@ -317,9 +432,20 @@ val evaluation = PerformanceEvaluation.create(
 )
 ```
 
-## Verification Expectations
+## Acceptance Criteria
 
-After generation, the shared module should compile and the shared domain tests should pass:
+The result is acceptable only if all of the following are true:
+
+- code is generated in the exact package and file structure specified above
+- no forbidden dependencies are imported
+- all required invariants are enforced
+- obsolete concepts are not reintroduced
+- the shared module compiles
+- the shared domain te sts pass
+
+## Verification
+
+The generated code should satisfy:
 
 ```bash
 ./gradlew :shared:jvmTest

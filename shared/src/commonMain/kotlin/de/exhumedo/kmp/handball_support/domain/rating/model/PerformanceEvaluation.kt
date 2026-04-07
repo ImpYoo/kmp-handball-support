@@ -2,8 +2,6 @@ package de.exhumedo.kmp.handball_support.domain.rating.model
 
 import de.exhumedo.kmp.handball_support.domain.rating.exception.DomainException
 import kotlin.time.Clock
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /**
  * Aggregate root representing one completed evaluation of a table official team.
@@ -71,7 +69,7 @@ class PerformanceEvaluation(
         /**
          * Creates a completed evaluation owned by this application.
          *
-         * @param id Unique evaluation identifier. When omitted, a random UUID is generated.
+         * @param id Unique evaluation identifier.
          * @param game External game reference being evaluated.
          * @param refereePair Referee pair acting as the collective voter.
          * @param tableOfficialTeam Table official team being evaluated.
@@ -80,9 +78,8 @@ class PerformanceEvaluation(
          * @param clock Clock used to derive the creation timestamp. Defaults to the system clock.
          * @return A complete evaluation aggregate ready to persist.
          */
-        @OptIn(ExperimentalUuidApi::class)
         fun create(
-            id: String = Uuid.random().toString(),
+            id: String,
             game: Game,
             refereePair: RefereePair,
             tableOfficialTeam: TableOfficialTeam,
