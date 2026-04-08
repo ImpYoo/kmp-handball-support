@@ -1,5 +1,7 @@
 package de.exhumedo.kmp.handball_support.domain.rating.repository
 
+import de.exhumedo.kmp.handball_support.domain.rating.model.EvaluatorReference
+import de.exhumedo.kmp.handball_support.domain.rating.model.EvaluatorType
 import de.exhumedo.kmp.handball_support.domain.rating.model.PerformanceEvaluation
 
 /**
@@ -11,7 +13,7 @@ import de.exhumedo.kmp.handball_support.domain.rating.model.PerformanceEvaluatio
  * coroutine library imports into the domain model.
  *
  * Implementations are responsible for enforcing the uniqueness rule that only
- * one evaluation may exist for a given game.
+ * one evaluation may exist for a given game and evaluator type.
  */
 interface PerformanceEvaluationRepository {
 
@@ -32,32 +34,34 @@ interface PerformanceEvaluationRepository {
     suspend fun findById(id: String): PerformanceEvaluation?
 
     /**
-     * Finds the unique evaluation associated with one game.
+     * Finds evaluations associated with one game.
      *
      * @param gameId The external game identifier.
-     * @return The matching aggregate or `null` when none exists.
+     * @return All matching aggregates for that game.
      */
-    suspend fun findByGameId(gameId: String): PerformanceEvaluation?
+    suspend fun findByGameId(gameId: String): List<PerformanceEvaluation>
 
     /**
-     * Finds all evaluations created by the same referee pair.
+     * Finds all evaluations created by the same evaluator reference.
      *
-     * @param firstRefereeId The first referee person identifier.
-     * @param secondRefereeId The second referee person identifier.
-     * @return All matching evaluations for that pair of referee persons.
+     * @param evaluatorReference Evaluator-side query reference.
+     * @return All matching evaluations for that evaluator reference.
      */
-    suspend fun findByRefereePairPersonIds(
-        firstRefereeId: String,
-        secondRefereeId: String,
+    suspend fun findByEvaluatorReference(
+        evaluatorReference: EvaluatorReference,
     ): List<PerformanceEvaluation>
 
     /**
-     * Checks whether an evaluation already exists for the specified game.
+     * Checks whether an evaluation already exists for the specified game and evaluator type.
      *
      * @param gameId The external game identifier.
-     * @return `true` when the game already has an evaluation, otherwise `false`.
+     * @param evaluatorType Stable evaluator kind.
+     * @return `true` when the game already has an evaluation for that evaluator type, otherwise `false`.
      */
-    suspend fun existsByGameId(gameId: String): Boolean
+    suspend fun existsByGameIdAndEvaluatorType(
+        gameId: String,
+        evaluatorType: EvaluatorType,
+    ): Boolean
 
     /**
      * Returns every stored evaluation.

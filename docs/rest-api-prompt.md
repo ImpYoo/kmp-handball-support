@@ -123,6 +123,9 @@ Relevant assumptions:
   - `influence`
   - `teamwork`
 - weighted totals are derived by `EvaluationScore.toScore(...)`
+- `Evaluator` is the voting party and supports:
+  - `REFEREE_TEAM`
+  - `DELEGATE`
 - the table team contains:
   - `timeKeeper`
   - `scoreKeeper`
@@ -171,7 +174,7 @@ Error format:
 
 Map these failures:
 
-- duplicate game evaluation -> `409 Conflict`
+- duplicate game and evaluator-type evaluation -> `409 Conflict`
 - domain validation failures -> `400 Bad Request`
 - generic `IllegalArgumentException` -> `400 Bad Request`
 - unexpected exceptions -> `500 Internal Server Error`
@@ -195,8 +198,8 @@ Rules:
 
 - `POST` accepts request DTO, maps to application command, calls application service, returns response DTO
 - `GET /api/performance-evaluations`:
-  - if `gameId` is present, return the single matching evaluation or 404
-  - if both referee IDs are present, return all matching evaluations
+  - if `gameId` is present, return all matching evaluations for that game
+  - if both referee IDs are present, return all matching referee-team evaluations
   - if only one referee ID is present, return `400 Bad Request`
   - otherwise return all evaluations
 - `GET /api/performance-evaluations/{id}` returns single evaluation or 404
@@ -220,17 +223,18 @@ Fields:
 Responsibilities:
 
 - define request/response DTOs
-- define nested DTOs for game, person, role assignment, referee pair, table official team, and score
+- define nested DTOs for game, person, role assignment, evaluator, referee pair, table official team, and score
 - map request DTOs into application commands
 - map domain aggregates into response DTOs
 
 Rules:
 
 - `CreatePerformanceEvaluationRequestDto` must **not** contain `id`
+- request/response DTOs must model `evaluator`
 - response DTO should contain:
   - `id`
   - `game`
-  - `refereePair`
+  - `evaluator`
   - `tableOfficialTeam`
   - `score`
   - `weightedTotalScore`
@@ -246,6 +250,11 @@ Official role transport values:
 - `SCORE_KEEPER`
 - `DELEGATE`
 
+Evaluator transport values:
+
+- `REFEREE_TEAM`
+- `DELEGATE`
+
 ### `application/CreatePerformanceEvaluationCommand.kt`
 
 Type:
@@ -255,7 +264,7 @@ Type:
 Fields:
 
 - `game: Game`
-- `refereePair: RefereePair`
+- `evaluator: Evaluator`
 - `tableOfficialTeam: TableOfficialTeam`
 - `score: EvaluationScore`
 - `comment: String?`
@@ -282,7 +291,7 @@ Requirements:
 ```kotlin
 suspend fun create(
     game: Game,
-    refereePair: RefereePair,
+    evaluator: Evaluator,
     tableOfficialTeam: TableOfficialTeam,
     score: EvaluationScore,
     comment: String?,
@@ -306,14 +315,15 @@ Responsibilities:
 - store evaluations in a JSON file
 - create the storage file/directories if missing
 - support read/write of all persisted evaluations
-- enforce uniqueness of one evaluation per game
+- enforce uniqueness of one evaluation per game and evaluator type
 
 Rules:
 
 - JSON file stores serialized persistence records, not domain objects directly
 - repository maps persistence records to/from domain objects
-- saving an evaluation for the same game but a different evaluation ID must fail with a dedicated conflict exception
+- saving an evaluation for the same game and evaluator type but a different evaluation ID must fail with a dedicated conflict exception
 - saving the same evaluation ID again should update the existing record
+- one referee-team evaluation and one delegate evaluation may coexist for the same game
 
 Persistence exception:
 
@@ -328,11 +338,12 @@ Generate integration tests that cover at least:
 - creating an evaluation returns `201 Created`
 - created evaluation can be fetched again
 - listing all evaluations returns stored items
-- filtering by `gameId` returns the matching evaluation or `404`
+- filtering by `gameId` returns matching evaluations, possibly multiple per game
 - filtering by `firstRefereeId` and `secondRefereeId` returns matching evaluations
 - providing only one referee-pair filter parameter returns `400`
 - `createdAt` comes from injected clock
-- duplicate evaluation for same game returns `409 Conflict`
+- duplicate evaluation for same game and evaluator type returns `409 Conflict`
+- one referee-team evaluation and one delegate evaluation may coexist for the same game
 - requesting a missing evaluation by `id` returns `404`
 - problem responses are returned for invalid requests
 
@@ -359,14 +370,17 @@ Do not attempt to fully implement all Zalando tooling or spec artifacts unless e
     "awayTeam": "SG Flensburg",
     "venue": "Sparkassen-Arena"
   },
-  "refereePair": {
-    "firstReferee": {
-      "person": { "id": "R1", "firstName": "Max", "lastName": "Mueller" },
-      "role": "FIRST_REFEREE"
-    },
-    "secondReferee": {
-      "person": { "id": "R2", "firstName": "Anna", "lastName": "Schmidt" },
-      "role": "SECOND_REFEREE"
+  "evaluator": {
+    "type": "REFEREE_TEAM",
+    "refereePair": {
+      "firstReferee": {
+        "person": { "id": "R1", "firstName": "Max", "lastName": "Mueller" },
+        "role": "FIRST_REFEREE"
+      },
+      "secondReferee": {
+        "person": { "id": "R2", "firstName": "Anna", "lastName": "Schmidt" },
+        "role": "SECOND_REFEREE"
+      }
     }
   },
   "tableOfficialTeam": {
@@ -400,14 +414,17 @@ Do not attempt to fully implement all Zalando tooling or spec artifacts unless e
     "awayTeam": "SG Flensburg",
     "venue": "Sparkassen-Arena"
   },
-  "refereePair": {
-    "firstReferee": {
-      "person": { "id": "R1", "firstName": "Max", "lastName": "Mueller" },
-      "role": "FIRST_REFEREE"
-    },
-    "secondReferee": {
-      "person": { "id": "R2", "firstName": "Anna", "lastName": "Schmidt" },
-      "role": "SECOND_REFEREE"
+  "evaluator": {
+    "type": "REFEREE_TEAM",
+    "refereePair": {
+      "firstReferee": {
+        "person": { "id": "R1", "firstName": "Max", "lastName": "Mueller" },
+        "role": "FIRST_REFEREE"
+      },
+      "secondReferee": {
+        "person": { "id": "R2", "firstName": "Anna", "lastName": "Schmidt" },
+        "role": "SECOND_REFEREE"
+      }
     }
   },
   "tableOfficialTeam": {
@@ -440,7 +457,7 @@ The result is acceptable only if all of the following are true:
 - request DTO does not contain `id`
 - ID generation is handled in application/service layer
 - repository persists to JSON file
-- uniqueness of one evaluation per game is enforced
+- uniqueness of one evaluation per game and evaluator type is enforced
 - the implemented routes are covered by end-to-end tests
 - API uses problem-style JSON for errors
 - server tests pass

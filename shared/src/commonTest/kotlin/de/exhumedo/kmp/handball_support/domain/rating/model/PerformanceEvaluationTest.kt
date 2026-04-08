@@ -13,9 +13,11 @@ class PerformanceEvaluationTest {
     fun rejectsOverlapBetweenRefereesAndTableTeam() {
         val overlappingPerson = person("p1")
 
-        val refereePair = RefereePair(
-            firstReferee = RoleAssignment(overlappingPerson, OfficialRole.FirstReferee),
-            secondReferee = RoleAssignment(person("r2"), OfficialRole.SecondReferee),
+        val evaluator = Evaluator.RefereeTeam(
+            RefereePair(
+                firstReferee = RoleAssignment(overlappingPerson, OfficialRole.FirstReferee),
+                secondReferee = RoleAssignment(person("r2"), OfficialRole.SecondReferee),
+            ),
         )
 
         val tableTeam = TableOfficialTeam(
@@ -28,7 +30,7 @@ class PerformanceEvaluationTest {
             PerformanceEvaluation.create(
                 id = "evaluation-1",
                 game = game(),
-                refereePair = refereePair,
+                evaluator = evaluator,
                 tableOfficialTeam = tableTeam,
                 score = evaluationScore(),
                 comment = "Overlap should fail",
@@ -44,7 +46,7 @@ class PerformanceEvaluationTest {
         val first = PerformanceEvaluation.create(
             id = "evaluation-1",
             game = game(),
-            refereePair = refereePair(),
+            evaluator = refereeTeamEvaluator(),
             tableOfficialTeam = tableOfficialTeam(),
             score = evaluationScore(),
             comment = "First",
@@ -60,9 +62,11 @@ class PerformanceEvaluationTest {
                 awayTeam = "Home",
                 venue = "Other Hall",
             ),
-            refereePair = RefereePair(
-                firstReferee = RoleAssignment(person("x1"), OfficialRole.FirstReferee),
-                secondReferee = RoleAssignment(person("x2"), OfficialRole.SecondReferee),
+            evaluator = Evaluator.RefereeTeam(
+                RefereePair(
+                    firstReferee = RoleAssignment(person("x1"), OfficialRole.FirstReferee),
+                    secondReferee = RoleAssignment(person("x2"), OfficialRole.SecondReferee),
+                ),
             ),
             tableOfficialTeam = TableOfficialTeam(
                 timeKeeper = RoleAssignment(person("x3"), OfficialRole.TimeKeeper),
@@ -87,7 +91,7 @@ class PerformanceEvaluationTest {
         val evaluation = PerformanceEvaluation.create(
             id = "evaluation-1",
             game = game(),
-            refereePair = refereePair(),
+            evaluator = refereeTeamEvaluator(),
             tableOfficialTeam = tableOfficialTeam(),
             score = evaluationScore(),
             comment = null,

@@ -7,7 +7,6 @@ import de.exhumedo.kmp.handball_support.auth.AuthUserNotFoundException
 import de.exhumedo.kmp.handball_support.auth.LastEnabledAdminRemovalException
 import de.exhumedo.kmp.handball_support.config.AppConfig
 import de.exhumedo.kmp.handball_support.domain.rating.exception.DomainException
-import de.exhumedo.kmp.handball_support.persistence.DuplicateGameEvaluationException
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -17,10 +16,13 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.BadRequestException
+import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.path
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
 /**
@@ -55,7 +57,7 @@ fun Application.configureHttp(appConfig: AppConfig) {
     }
 
     install(StatusPages) {
-        exception<DuplicateGameEvaluationException> { call, cause ->
+        exception<DomainException.DuplicateGameEvaluation> { call, cause ->
             call.respondProblem(
                 status = HttpStatusCode.Conflict,
                 title = "Conflict",
@@ -96,6 +98,27 @@ fun Application.configureHttp(appConfig: AppConfig) {
                 status = HttpStatusCode.BadRequest,
                 title = "Domain Validation Failed",
                 detail = cause.message ?: "The request violates domain rules.",
+            )
+        }
+        exception<BadRequestException> { call, cause ->
+            call.respondProblem(
+                status = HttpStatusCode.BadRequest,
+                title = "Invalid Request Body",
+                detail = cause.message ?: "The request body could not be parsed.",
+            )
+        }
+        exception<ContentTransformationException> { call, cause ->
+            call.respondProblem(
+                status = HttpStatusCode.BadRequest,
+                title = "Invalid Request Body",
+                detail = cause.message ?: "The request body could not be parsed.",
+            )
+        }
+        exception<SerializationException> { call, cause ->
+            call.respondProblem(
+                status = HttpStatusCode.BadRequest,
+                title = "Invalid Request Body",
+                detail = cause.message ?: "The request body contains invalid or missing fields.",
             )
         }
         exception<IllegalArgumentException> { call, cause ->

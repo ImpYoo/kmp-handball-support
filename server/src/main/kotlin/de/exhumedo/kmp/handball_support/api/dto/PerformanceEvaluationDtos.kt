@@ -2,6 +2,8 @@ package de.exhumedo.kmp.handball_support.api.dto
 
 import de.exhumedo.kmp.handball_support.application.CreatePerformanceEvaluationCommand
 import de.exhumedo.kmp.handball_support.domain.rating.model.EvaluationScore
+import de.exhumedo.kmp.handball_support.domain.rating.model.Evaluator
+import de.exhumedo.kmp.handball_support.domain.rating.model.EvaluatorType
 import de.exhumedo.kmp.handball_support.domain.rating.model.Game
 import de.exhumedo.kmp.handball_support.domain.rating.model.OfficialRole
 import de.exhumedo.kmp.handball_support.domain.rating.model.PerformanceEvaluation
@@ -14,40 +16,25 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Request DTO for creating a performance evaluation.
- *
- * @property game Referenced game data.
- * @property refereePair Referee pair acting as evaluator.
- * @property tableOfficialTeam Evaluated table official team.
- * @property score Raw criterion scores.
- * @property comment Optional comment.
+ * Request payload for creating one performance evaluation.
  */
 @Serializable
 data class CreatePerformanceEvaluationRequestDto(
     val game: GameDto,
-    val refereePair: RefereePairDto,
+    val evaluator: EvaluatorDto,
     val tableOfficialTeam: TableOfficialTeamDto,
     val score: EvaluationScoreDto,
     val comment: String? = null,
 )
 
 /**
- * Response DTO for a stored performance evaluation.
- *
- * @property id Evaluation identifier.
- * @property game Referenced game data.
- * @property refereePair Referee pair acting as evaluator.
- * @property tableOfficialTeam Evaluated table official team.
- * @property score Raw criterion scores.
- * @property weightedTotalScore Derived score using default weights.
- * @property comment Optional comment.
- * @property createdAt ISO 8601 creation timestamp.
+ * Response payload for one stored performance evaluation.
  */
 @Serializable
 data class PerformanceEvaluationResponseDto(
     val id: String,
     val game: GameDto,
-    val refereePair: RefereePairDto,
+    val evaluator: EvaluatorDto,
     val tableOfficialTeam: TableOfficialTeamDto,
     val score: EvaluationScoreDto,
     val weightedTotalScore: Int,
@@ -56,7 +43,7 @@ data class PerformanceEvaluationResponseDto(
 )
 
 /**
- * DTO for a referenced game.
+ * Transport representation of one game reference.
  */
 @Serializable
 data class GameDto(
@@ -68,7 +55,7 @@ data class GameDto(
 )
 
 /**
- * DTO for a person.
+ * Transport representation of one person.
  */
 @Serializable
 data class PersonDto(
@@ -78,7 +65,7 @@ data class PersonDto(
 )
 
 /**
- * DTO for an official role.
+ * Transport enum for official roles.
  */
 @Serializable
 enum class OfficialRoleDto {
@@ -99,7 +86,19 @@ enum class OfficialRoleDto {
 }
 
 /**
- * DTO binding a person to a role.
+ * Transport enum for evaluator kinds.
+ */
+@Serializable
+enum class EvaluatorTypeDto {
+    @SerialName("REFEREE_TEAM")
+    REFEREE_TEAM,
+
+    @SerialName("DELEGATE")
+    DELEGATE,
+}
+
+/**
+ * Transport representation of one contextual role assignment.
  */
 @Serializable
 data class RoleAssignmentDto(
@@ -108,7 +107,7 @@ data class RoleAssignmentDto(
 )
 
 /**
- * DTO for a referee pair.
+ * Transport representation of a referee pair.
  */
 @Serializable
 data class RefereePairDto(
@@ -117,7 +116,7 @@ data class RefereePairDto(
 )
 
 /**
- * DTO for a table official team.
+ * Transport representation of the evaluated table official team.
  */
 @Serializable
 data class TableOfficialTeamDto(
@@ -127,7 +126,17 @@ data class TableOfficialTeamDto(
 )
 
 /**
- * DTO for raw evaluation criteria.
+ * Transport representation of the party submitting the evaluation.
+ */
+@Serializable
+data class EvaluatorDto(
+    val type: EvaluatorTypeDto,
+    val refereePair: RefereePairDto? = null,
+    val delegate: RoleAssignmentDto? = null,
+)
+
+/**
+ * Transport representation of the evaluation score criteria.
  */
 @Serializable
 data class EvaluationScoreDto(
@@ -137,32 +146,83 @@ data class EvaluationScoreDto(
 )
 
 /**
- * Maps the incoming request DTO into an application command.
- *
- * @return The mapped application command.
+ * Maps a validated request DTO into an application command.
  */
 fun CreatePerformanceEvaluationRequestDto.toCreateCommand(): CreatePerformanceEvaluationCommand {
-    val normalizedComment = comment?.takeIf { it.isNotBlank() }
+    require(game.gameId.isNotBlank()) { "game.gameId must not be blank" }
+    require(game.date.isNotBlank()) { "game.date must not be blank" }
+    require(game.homeTeam.isNotBlank()) { "game.homeTeam must not be blank" }
+    require(game.awayTeam.isNotBlank()) { "game.awayTeam must not be blank" }
+    require(game.venue.isNotBlank()) { "game.venue must not be blank" }
+
+    fun requirePerson(person: PersonDto, context: String) {
+        require(person.id.isNotBlank()) { "$context.id must not be blank" }
+        require(person.firstName.isNotBlank()) { "$context.firstName must not be blank" }
+        require(person.lastName.isNotBlank()) { "$context.lastName must not be blank" }
+    }
+
+    when (evaluator.type) {
+        EvaluatorTypeDto.REFEREE_TEAM -> {
+            val refereePair = requireNotNull(evaluator.refereePair) {
+                "evaluator.refereePair is required for evaluator.type=REFEREE_TEAM"
+            }
+            require(evaluator.delegate == null) {
+                "evaluator.delegate must be null for evaluator.type=REFEREE_TEAM"
+            }
+            requirePerson(refereePair.firstReferee.person, "evaluator.refereePair.firstReferee.person")
+            requirePerson(refereePair.secondReferee.person, "evaluator.refereePair.secondReferee.person")
+        }
+
+        EvaluatorTypeDto.DELEGATE -> {
+            val delegate = requireNotNull(evaluator.delegate) {
+                "evaluator.delegate is required for evaluator.type=DELEGATE"
+            }
+            require(evaluator.refereePair == null) {
+                "evaluator.refereePair must be null for evaluator.type=DELEGATE"
+            }
+            requirePerson(delegate.person, "evaluator.delegate.person")
+        }
+    }
+
+    requirePerson(tableOfficialTeam.timeKeeper.person, "tableOfficialTeam.timeKeeper.person")
+    requirePerson(tableOfficialTeam.scoreKeeper.person, "tableOfficialTeam.scoreKeeper.person")
+    tableOfficialTeam.delegate?.let { requirePerson(it.person, "tableOfficialTeam.delegate.person") }
+
+    require(score.appearance in Score.MIN_VALUE..Score.MAX_VALUE) {
+        "score.appearance must be between ${Score.MIN_VALUE} and ${Score.MAX_VALUE}"
+    }
+    require(score.influence in Score.MIN_VALUE..Score.MAX_VALUE) {
+        "score.influence must be between ${Score.MIN_VALUE} and ${Score.MAX_VALUE}"
+    }
+    require(score.teamwork in Score.MIN_VALUE..Score.MAX_VALUE) {
+        "score.teamwork must be between ${Score.MIN_VALUE} and ${Score.MAX_VALUE}"
+    }
+
+    val normalizedComment = comment?.takeIf { it.isNotBlank() }?.also {
+        require(it.length <= COMMENT_MAX_LENGTH) {
+            "comment must not exceed $COMMENT_MAX_LENGTH characters"
+        }
+    }
 
     return CreatePerformanceEvaluationCommand(
         game = game.toDomain(),
-        refereePair = refereePair.toDomain(),
+        evaluator = evaluator.toDomain(),
         tableOfficialTeam = tableOfficialTeam.toDomain(),
         score = score.toDomain(),
         comment = normalizedComment,
     )
 }
 
+private const val COMMENT_MAX_LENGTH = 2000
+
 /**
- * Maps the domain aggregate into the response DTO.
- *
- * @return The serialized response representation.
+ * Maps a domain aggregate into the public response DTO.
  */
 fun PerformanceEvaluation.toResponseDto(): PerformanceEvaluationResponseDto {
     return PerformanceEvaluationResponseDto(
         id = id,
         game = game.toDto(),
-        refereePair = refereePair.toDto(),
+        evaluator = evaluator.toDto(),
         tableOfficialTeam = tableOfficialTeam.toDto(),
         score = score.toDto(),
         weightedTotalScore = score.toScore(),
@@ -171,6 +231,9 @@ fun PerformanceEvaluation.toResponseDto(): PerformanceEvaluationResponseDto {
     )
 }
 
+/**
+ * Maps a game DTO to the domain model.
+ */
 private fun GameDto.toDomain(): Game = Game(
     gameId = gameId,
     date = date,
@@ -179,6 +242,9 @@ private fun GameDto.toDomain(): Game = Game(
     venue = venue,
 )
 
+/**
+ * Maps a domain game to the transport DTO.
+ */
 private fun Game.toDto(): GameDto = GameDto(
     gameId = gameId,
     date = date,
@@ -187,62 +253,133 @@ private fun Game.toDto(): GameDto = GameDto(
     venue = venue,
 )
 
+/**
+ * Maps a person DTO to the domain model.
+ */
 private fun PersonDto.toDomain(): Person = Person(
     id = id,
     firstName = firstName,
     lastName = lastName,
 )
 
+/**
+ * Maps a domain person to the transport DTO.
+ */
 private fun Person.toDto(): PersonDto = PersonDto(
     id = id,
     firstName = firstName,
     lastName = lastName,
 )
 
+/**
+ * Maps a role assignment DTO to the domain model.
+ */
 private fun RoleAssignmentDto.toDomain(): RoleAssignment = RoleAssignment(
     person = person.toDomain(),
     role = role.toDomain(),
 )
 
+/**
+ * Maps a domain role assignment to the transport DTO.
+ */
 private fun RoleAssignment.toDto(): RoleAssignmentDto = RoleAssignmentDto(
     person = person.toDto(),
     role = role.toDto(),
 )
 
+/**
+ * Maps a referee pair DTO to the domain model.
+ */
 private fun RefereePairDto.toDomain(): RefereePair = RefereePair(
     firstReferee = firstReferee.toDomain(),
     secondReferee = secondReferee.toDomain(),
 )
 
+/**
+ * Maps a domain referee pair to the transport DTO.
+ */
 private fun RefereePair.toDto(): RefereePairDto = RefereePairDto(
     firstReferee = firstReferee.toDto(),
     secondReferee = secondReferee.toDto(),
 )
 
+/**
+ * Maps a table official team DTO to the domain model.
+ */
 private fun TableOfficialTeamDto.toDomain(): TableOfficialTeam = TableOfficialTeam(
     timeKeeper = timeKeeper.toDomain(),
     scoreKeeper = scoreKeeper.toDomain(),
     delegate = delegate?.toDomain(),
 )
 
+/**
+ * Maps a domain table official team to the transport DTO.
+ */
 private fun TableOfficialTeam.toDto(): TableOfficialTeamDto = TableOfficialTeamDto(
     timeKeeper = timeKeeper.toDto(),
     scoreKeeper = scoreKeeper.toDto(),
     delegate = delegate?.toDto(),
 )
 
+/**
+ * Maps an evaluator DTO to the domain model.
+ */
+private fun EvaluatorDto.toDomain(): Evaluator = when (type) {
+    EvaluatorTypeDto.REFEREE_TEAM -> Evaluator.RefereeTeam(
+        refereePair = requireNotNull(refereePair) { "evaluator.refereePair is required" }.toDomain(),
+    )
+
+    EvaluatorTypeDto.DELEGATE -> Evaluator.Delegate(
+        assignment = requireNotNull(delegate) { "evaluator.delegate is required" }.toDomain(),
+    )
+}
+
+/**
+ * Maps a domain evaluator to the transport DTO.
+ */
+private fun Evaluator.toDto(): EvaluatorDto = when (this) {
+    is Evaluator.RefereeTeam -> EvaluatorDto(
+        type = EvaluatorTypeDto.REFEREE_TEAM,
+        refereePair = refereePair.toDto(),
+        delegate = null,
+    )
+
+    is Evaluator.Delegate -> EvaluatorDto(
+        type = EvaluatorTypeDto.DELEGATE,
+        refereePair = null,
+        delegate = assignment.toDto(),
+    )
+}
+
+/**
+ * Maps a score DTO to the domain model.
+ */
 private fun EvaluationScoreDto.toDomain(): EvaluationScore = EvaluationScore(
     appearance = Score(appearance),
     influence = Score(influence),
     teamwork = Score(teamwork),
 )
 
+/**
+ * Maps a domain score to the transport DTO.
+ */
 private fun EvaluationScore.toDto(): EvaluationScoreDto = EvaluationScoreDto(
     appearance = appearance.value,
     influence = influence.value,
     teamwork = teamwork.value,
 )
 
+/**
+ * Maps a domain evaluator type to the transport enum.
+ */
+private fun EvaluatorType.toDto(): EvaluatorTypeDto = when (this) {
+    EvaluatorType.REFEREE_TEAM -> EvaluatorTypeDto.REFEREE_TEAM
+    EvaluatorType.DELEGATE -> EvaluatorTypeDto.DELEGATE
+}
+
+/**
+ * Maps a transport official role to the domain role.
+ */
 private fun OfficialRoleDto.toDomain(): OfficialRole = when (this) {
     OfficialRoleDto.FIRST_REFEREE -> OfficialRole.FirstReferee
     OfficialRoleDto.SECOND_REFEREE -> OfficialRole.SecondReferee
@@ -251,6 +388,9 @@ private fun OfficialRoleDto.toDomain(): OfficialRole = when (this) {
     OfficialRoleDto.DELEGATE -> OfficialRole.Delegate
 }
 
+/**
+ * Maps a domain official role to the transport enum.
+ */
 private fun OfficialRole.toDto(): OfficialRoleDto = when (this) {
     OfficialRole.FirstReferee -> OfficialRoleDto.FIRST_REFEREE
     OfficialRole.SecondReferee -> OfficialRoleDto.SECOND_REFEREE

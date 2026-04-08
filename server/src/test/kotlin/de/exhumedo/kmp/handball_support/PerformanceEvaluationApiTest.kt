@@ -54,7 +54,7 @@ class PerformanceEvaluationApiTest {
         val response = client.post("/api/performance-evaluations") {
             header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             header(HttpHeaders.Authorization, "Bearer $token")
-            setBody(baseEvaluationRequest())
+            setBody(baseRefereeTeamEvaluationRequest())
         }
 
         assertEquals(HttpStatusCode.Created, response.status)
@@ -62,6 +62,7 @@ class PerformanceEvaluationApiTest {
         assertTrue(createdBody.contains("2026-04-09T10:30:00Z"))
         assertTrue(createdBody.contains("weightedTotalScore"))
         assertTrue(createdBody.contains("24"))
+        assertTrue(createdBody.contains("REFEREE_TEAM"))
 
         val savedId = """"id"\s*:\s*"([^"]+)"""".toRegex()
             .find(createdBody)
@@ -74,6 +75,45 @@ class PerformanceEvaluationApiTest {
         }
         assertEquals(HttpStatusCode.OK, getResponse.status)
         assertTrue(getResponse.bodyAsText().contains("G-001"))
+    }
+
+    @Test
+    fun allowsOneRefereeTeamVoteAndOneDelegateVotePerGame() = testApplication {
+        val storageFile = Files.createTempFile("performance-evaluations", ".json")
+        val repository = JsonFilePerformanceEvaluationRepository(storageFile)
+
+        application {
+            module(
+                appConfig = createTestAppConfig(evaluationsFile = storageFile),
+                repository = repository,
+                authUserStore = createTestAuthUserStore(),
+                clock = fixedClock("2026-04-09T10:30:00Z"),
+            )
+        }
+
+        val token = issueToken("admin", "AdminPass123!")
+
+        val refereeVote = client.post("/api/performance-evaluations") {
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            header(HttpHeaders.Authorization, "Bearer $token")
+            setBody(createRefereeTeamEvaluationRequest(gameId = "G-001", firstRefereeId = "R1", secondRefereeId = "R2"))
+        }
+        assertEquals(HttpStatusCode.Created, refereeVote.status)
+
+        val delegateVote = client.post("/api/performance-evaluations") {
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            header(HttpHeaders.Authorization, "Bearer $token")
+            setBody(createDelegateEvaluationRequest(gameId = "G-001", delegateId = "D1"))
+        }
+        assertEquals(HttpStatusCode.Created, delegateVote.status)
+
+        val byGameResponse = client.get("/api/performance-evaluations?gameId=G-001") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+        assertEquals(HttpStatusCode.OK, byGameResponse.status)
+        val body = byGameResponse.bodyAsText()
+        assertTrue(body.contains("REFEREE_TEAM"))
+        assertTrue(body.contains("DELEGATE"))
     }
 
     @Test
@@ -95,14 +135,14 @@ class PerformanceEvaluationApiTest {
         val firstCreate = client.post("/api/performance-evaluations") {
             header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             header(HttpHeaders.Authorization, "Bearer $token")
-            setBody(createEvaluationRequest(gameId = "G-001", firstRefereeId = "R1", secondRefereeId = "R2"))
+            setBody(createRefereeTeamEvaluationRequest(gameId = "G-001", firstRefereeId = "R1", secondRefereeId = "R2"))
         }
         assertEquals(HttpStatusCode.Created, firstCreate.status)
 
         val secondCreate = client.post("/api/performance-evaluations") {
             header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             header(HttpHeaders.Authorization, "Bearer $token")
-            setBody(createEvaluationRequest(gameId = "G-002", firstRefereeId = "R3", secondRefereeId = "R4"))
+            setBody(createRefereeTeamEvaluationRequest(gameId = "G-002", firstRefereeId = "R3", secondRefereeId = "R4"))
         }
         assertEquals(HttpStatusCode.Created, secondCreate.status)
 
@@ -129,7 +169,7 @@ class PerformanceEvaluationApiTest {
     }
 
     @Test
-    fun returnsNotFoundForMissingEvaluation() = testApplication {
+    fun returnsNotFoundForMissingEvaluationByIdAndEmptyListForMissingGameFilter() = testApplication {
         application {
             module(
                 appConfig = createTestAppConfig(),
@@ -150,8 +190,8 @@ class PerformanceEvaluationApiTest {
         val byGameResponse = client.get("/api/performance-evaluations?gameId=missing-game") {
             header(HttpHeaders.Authorization, "Bearer $token")
         }
-        assertEquals(HttpStatusCode.NotFound, byGameResponse.status)
-        assertTrue(byGameResponse.bodyAsText().contains("No evaluation found for game"))
+        assertEquals(HttpStatusCode.OK, byGameResponse.status)
+        assertEquals("[]", byGameResponse.bodyAsText().trim())
     }
 
     @Test
@@ -201,14 +241,17 @@ class PerformanceEvaluationApiTest {
                     "awayTeam": "SG Flensburg",
                     "venue": "Sparkassen-Arena"
                   },
-                  "refereePair": {
-                    "firstReferee": {
-                      "person": { "id": "R1", "firstName": "Max", "lastName": "Mueller" },
-                      "role": "SECOND_REFEREE"
-                    },
-                    "secondReferee": {
-                      "person": { "id": "R2", "firstName": "Anna", "lastName": "Schmidt" },
-                      "role": "SECOND_REFEREE"
+                  "evaluator": {
+                    "type": "REFEREE_TEAM",
+                    "refereePair": {
+                      "firstReferee": {
+                        "person": { "id": "R1", "firstName": "Max", "lastName": "Mueller" },
+                        "role": "SECOND_REFEREE"
+                      },
+                      "secondReferee": {
+                        "person": { "id": "R2", "firstName": "Anna", "lastName": "Schmidt" },
+                        "role": "SECOND_REFEREE"
+                      }
                     }
                   },
                   "tableOfficialTeam": {
@@ -238,7 +281,94 @@ class PerformanceEvaluationApiTest {
     }
 
     @Test
-    fun rejectsSecondEvaluationForSameGame() = testApplication {
+    fun rejectsMalformedJsonWithBadRequestProblem() = testApplication {
+        application {
+            module(
+                appConfig = createTestAppConfig(),
+                repository = JsonFilePerformanceEvaluationRepository(Files.createTempFile("performance-evaluations", ".json")),
+                authUserStore = createTestAuthUserStore(),
+                clock = fixedClock("2026-04-09T10:30:00Z"),
+            )
+        }
+
+        val token = issueToken("referee", "RefereePass123!")
+
+        val response = client.post("/api/performance-evaluations") {
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            header(HttpHeaders.Authorization, "Bearer $token")
+            setBody("{")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val body = response.bodyAsText()
+        assertTrue(body.contains("Invalid Request Body") || body.contains("Invalid Request") || body.contains("could not be parsed"))
+    }
+
+    @Test
+    fun rejectsDtoValidationFailureWithClearMessage() = testApplication {
+        application {
+            module(
+                appConfig = createTestAppConfig(),
+                repository = JsonFilePerformanceEvaluationRepository(Files.createTempFile("performance-evaluations", ".json")),
+                authUserStore = createTestAuthUserStore(),
+                clock = fixedClock("2026-04-09T10:30:00Z"),
+            )
+        }
+
+        val token = issueToken("referee", "RefereePass123!")
+
+        val response = client.post("/api/performance-evaluations") {
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            header(HttpHeaders.Authorization, "Bearer $token")
+            setBody(
+                """
+                {
+                  "game": {
+                    "gameId": "",
+                    "date": "2026-04-06",
+                    "homeTeam": "THW Kiel",
+                    "awayTeam": "SG Flensburg",
+                    "venue": "Sparkassen-Arena"
+                  },
+                  "evaluator": {
+                    "type": "REFEREE_TEAM",
+                    "refereePair": {
+                      "firstReferee": {
+                        "person": { "id": "R1", "firstName": "Max", "lastName": "Mueller" },
+                        "role": "FIRST_REFEREE"
+                      },
+                      "secondReferee": {
+                        "person": { "id": "R2", "firstName": "Anna", "lastName": "Schmidt" },
+                        "role": "SECOND_REFEREE"
+                      }
+                    }
+                  },
+                  "tableOfficialTeam": {
+                    "timeKeeper": {
+                      "person": { "id": "T1", "firstName": "Jan", "lastName": "Weber" },
+                      "role": "TIME_KEEPER"
+                    },
+                    "scoreKeeper": {
+                      "person": { "id": "T2", "firstName": "Lisa", "lastName": "Koch" },
+                      "role": "SCORE_KEEPER"
+                    }
+                  },
+                  "score": {
+                    "appearance": 8,
+                    "influence": 7,
+                    "teamwork": 9
+                  }
+                }
+                """.trimIndent(),
+            )
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertTrue(response.bodyAsText().contains("game.gameId must not be blank"))
+    }
+
+    @Test
+    fun rejectsSecondEvaluationForSameEvaluatorTypeAndGame() = testApplication {
         val storageFile = Files.createTempFile("performance-evaluations", ".json")
         val repository: PerformanceEvaluationRepository = JsonFilePerformanceEvaluationRepository(storageFile)
 
@@ -252,7 +382,7 @@ class PerformanceEvaluationApiTest {
         }
 
         val token = issueToken("admin", "AdminPass123!")
-        val body = baseEvaluationRequest()
+        val body = baseRefereeTeamEvaluationRequest()
 
         val first = client.post("/api/performance-evaluations") {
             header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
@@ -267,18 +397,21 @@ class PerformanceEvaluationApiTest {
             setBody(body)
         }
         assertEquals(HttpStatusCode.Conflict, second.status)
-        assertTrue(second.bodyAsText().contains("Conflict"))
+        val secondBody = second.bodyAsText()
+        assertTrue(secondBody.contains("Conflict"))
+        assertTrue(secondBody.contains("REFEREE_TEAM"))
+        assertTrue(secondBody.contains("G-001"))
     }
 
-    private fun baseEvaluationRequest(): String {
-        return createEvaluationRequest(
+    private fun baseRefereeTeamEvaluationRequest(): String {
+        return createRefereeTeamEvaluationRequest(
             gameId = "G-001",
             firstRefereeId = "R1",
             secondRefereeId = "R2",
         )
     }
 
-    private fun createEvaluationRequest(
+    private fun createRefereeTeamEvaluationRequest(
         gameId: String,
         firstRefereeId: String,
         secondRefereeId: String,
@@ -292,14 +425,17 @@ class PerformanceEvaluationApiTest {
                 "awayTeam": "SG Flensburg",
                 "venue": "Sparkassen-Arena"
               },
-              "refereePair": {
-                "firstReferee": {
-                  "person": { "id": "$firstRefereeId", "firstName": "Max", "lastName": "Mueller" },
-                  "role": "FIRST_REFEREE"
-                },
-                "secondReferee": {
-                  "person": { "id": "$secondRefereeId", "firstName": "Anna", "lastName": "Schmidt" },
-                  "role": "SECOND_REFEREE"
+              "evaluator": {
+                "type": "REFEREE_TEAM",
+                "refereePair": {
+                  "firstReferee": {
+                    "person": { "id": "$firstRefereeId", "firstName": "Max", "lastName": "Mueller" },
+                    "role": "FIRST_REFEREE"
+                  },
+                  "secondReferee": {
+                    "person": { "id": "$secondRefereeId", "firstName": "Anna", "lastName": "Schmidt" },
+                    "role": "SECOND_REFEREE"
+                  }
                 }
               },
               "tableOfficialTeam": {
@@ -318,6 +454,46 @@ class PerformanceEvaluationApiTest {
                 "teamwork": 9
               },
               "comment": "Solid performance"
+            }
+        """.trimIndent()
+    }
+
+    private fun createDelegateEvaluationRequest(
+        gameId: String,
+        delegateId: String,
+    ): String {
+        return """
+            {
+              "game": {
+                "gameId": "$gameId",
+                "date": "2026-04-06",
+                "homeTeam": "THW Kiel",
+                "awayTeam": "SG Flensburg",
+                "venue": "Sparkassen-Arena"
+              },
+              "evaluator": {
+                "type": "DELEGATE",
+                "delegate": {
+                  "person": { "id": "$delegateId", "firstName": "Dana", "lastName": "Delegate" },
+                  "role": "DELEGATE"
+                }
+              },
+              "tableOfficialTeam": {
+                "timeKeeper": {
+                  "person": { "id": "T1-$gameId", "firstName": "Jan", "lastName": "Weber" },
+                  "role": "TIME_KEEPER"
+                },
+                "scoreKeeper": {
+                  "person": { "id": "T2-$gameId", "firstName": "Lisa", "lastName": "Koch" },
+                  "role": "SCORE_KEEPER"
+                }
+              },
+              "score": {
+                "appearance": 8,
+                "influence": 7,
+                "teamwork": 9
+              },
+              "comment": "Delegate assessment"
             }
         """.trimIndent()
     }

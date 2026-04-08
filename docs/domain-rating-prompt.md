@@ -38,6 +38,7 @@ The domain covers:
 
 - people participating in a game context
 - contextual official roles
+- evaluator assignment
 - referee pair assignment
 - table official team assignment
 - evaluation criteria and scoring
@@ -81,7 +82,6 @@ Do **not** generate or introduce:
 Notes:
 
 - `kotlin.time.Clock` is allowed
-- Kotlin stdlib UUID support is allowed
 - `suspend` is allowed because it is a Kotlin language feature
 
 ## Deliverables
@@ -97,6 +97,8 @@ shared/src/commonMain/kotlin/de/exhumedo/kmp/handball_support/domain/rating/
 │   ├── OfficialRole.kt
 │   ├── RoleAssignment.kt
 │   ├── RefereePair.kt
+│   ├── Evaluator.kt
+│   ├── EvaluatorReference.kt
 │   ├── TableOfficialTeam.kt
 │   ├── Game.kt
 │   ├── PerformanceEvaluation.kt
@@ -132,7 +134,8 @@ The test suite should validate the important domain invariants rather than just 
 - A `Game` is an immutable external reference.
 - A `Person` is an identity-based domain entity.
 - Roles are contextual and represented through `RoleAssignment`.
-- A `RefereePair` is the collective evaluator.
+- A `RefereePair` is one possible collective evaluator.
+- An `Evaluator` represents the party submitting one evaluation for one game.
 - A `TableOfficialTeam` is the evaluated subject.
 - `EvaluationScore` stores raw criterion values.
 - Weighted totals are derived through `toScore(...)` because weighting rules may evolve later.
@@ -161,6 +164,12 @@ Add exactly these subclasses:
 3. `InvalidRoleForPosition(val expectedRole: String, val actualRole: String)`
    Message:
    `"Expected role $expectedRole but got $actualRole"`
+
+Also add:
+
+4. `DuplicateGameEvaluation(val gameId: String, val evaluatorType: String)`
+   Message:
+   `"An evaluation for game '$gameId' and evaluator type '$evaluatorType' already exists"`
 
 Do not add any obsolete exception types.
 
@@ -283,6 +292,47 @@ Throw:
 - `DomainException.InvalidRoleForPosition`
 - `DomainException.DuplicatePersonInTeam`
 
+### `model/Evaluator.kt`
+
+Type:
+
+- sealed class
+
+Responsibilities:
+
+- represent the party that evaluates one table official team for one game
+- support exactly two evaluator kinds:
+  - `Evaluator.RefereeTeam(refereePair: RefereePair)`
+  - `Evaluator.Delegate(assignment: RoleAssignment)`
+- expose:
+  - `abstract val type: EvaluatorType`
+  - `abstract val persons: Set<Person>`
+
+Rules:
+
+- `Evaluator.RefereeTeam` wraps a valid `RefereePair`
+- `Evaluator.Delegate` requires `assignment.role == OfficialRole.Delegate`
+- invalid delegate role must throw `DomainException.InvalidRoleForPosition`
+
+Also define:
+
+- `enum class EvaluatorType { REFEREE_TEAM, DELEGATE }`
+
+### `model/EvaluatorReference.kt`
+
+Type:
+
+- sealed class
+
+Responsibilities:
+
+- provide query-side evaluator references for repository lookups without leaking evaluator subtype-specific methods into the repository port
+
+Subtypes:
+
+- `EvaluatorReference.RefereeTeam(firstRefereeId: String, secondRefereeId: String)`
+- `EvaluatorReference.Delegate(delegateId: String)`
+
 ### `model/TableOfficialTeam.kt`
 
 Type:
@@ -336,7 +386,7 @@ Fields:
 
 - `id: String`
 - `game: Game`
-- `refereePair: RefereePair`
+- `evaluator: Evaluator`
 - `tableOfficialTeam: TableOfficialTeam`
 - `score: EvaluationScore`
 - `comment: String?`
@@ -346,7 +396,7 @@ Invariants:
 
 - `id` must be non-blank
 - `createdAt` must be non-blank
-- no person may appear both in the referee pair and in the table official team
+- no person may appear both in the evaluator and in the table official team
 
 Rules:
 
@@ -360,9 +410,9 @@ Provide a companion factory with this signature:
 
 ```kotlin
 fun create(
-    id: String = Uuid.random().toString(),
+    id: String,
     game: Game,
-    refereePair: RefereePair,
+    evaluator: Evaluator,
     tableOfficialTeam: TableOfficialTeam,
     score: EvaluationScore,
     comment: String?,
@@ -372,7 +422,8 @@ fun create(
 
 Factory rules:
 
-- `id` defaults to a generated Kotlin stdlib UUID
+- `id` is supplied explicitly by the caller
+- ID generation belongs to the application layer, not the domain model
 - `createdAt` must be derived inside the factory with `clock.now().toString()`
 - keep the public constructor explicit with `createdAt: String`
 
@@ -386,10 +437,15 @@ Methods:
 
 - `suspend fun save(evaluation: PerformanceEvaluation): PerformanceEvaluation`
 - `suspend fun findById(id: String): PerformanceEvaluation?`
-- `suspend fun findByGameId(gameId: String): PerformanceEvaluation?`
-- `suspend fun findByRefereePairPersonIds(firstRefereeId: String, secondRefereeId: String): List<PerformanceEvaluation>`
-- `suspend fun existsByGameId(gameId: String): Boolean`
+- `suspend fun findByGameId(gameId: String): List<PerformanceEvaluation>`
+- `suspend fun findByEvaluatorReference(evaluatorReference: EvaluatorReference): List<PerformanceEvaluation>`
+- `suspend fun existsByGameIdAndEvaluatorType(gameId: String, evaluatorType: EvaluatorType): Boolean`
 - `suspend fun findAll(): List<PerformanceEvaluation>`
+
+Rules:
+
+- repository uniqueness must allow one evaluation per game and evaluator type
+- this means one referee-team evaluation and one delegate evaluation may coexist for the same game
 
 Do not add implementation details.
 
@@ -404,7 +460,9 @@ Generate focused common tests that cover at least:
 - invalid roles in `RefereePair`
 - duplicate people in `TableOfficialTeam`
 - optional delegate membership behavior
-- overlap rejection between referee pair and table team
+- overlap rejection between evaluator and table team
+- delegate evaluator requires delegate role
+- overlap rejection between delegate evaluator and table team
 - identity-based equality in `PerformanceEvaluation`
 - deterministic `createdAt` generation via injected `Clock`
 
@@ -415,9 +473,11 @@ This example is illustrative only. If it conflicts with the formal specification
 ```kotlin
 val evaluation = PerformanceEvaluation.create(
     game = Game("G-001", "2026-04-06", "THW Kiel", "SG Flensburg", "Sparkassen-Arena"),
-    refereePair = RefereePair(
-        RoleAssignment(Person("R1", "Max", "Mueller"), OfficialRole.FirstReferee),
-        RoleAssignment(Person("R2", "Anna", "Schmidt"), OfficialRole.SecondReferee),
+    evaluator = Evaluator.RefereeTeam(
+        RefereePair(
+            RoleAssignment(Person("R1", "Max", "Mueller"), OfficialRole.FirstReferee),
+            RoleAssignment(Person("R2", "Anna", "Schmidt"), OfficialRole.SecondReferee),
+        ),
     ),
     tableOfficialTeam = TableOfficialTeam(
         RoleAssignment(Person("T1", "Jan", "Weber"), OfficialRole.TimeKeeper),

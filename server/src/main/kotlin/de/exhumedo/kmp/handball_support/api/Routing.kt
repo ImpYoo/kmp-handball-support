@@ -7,6 +7,7 @@ import de.exhumedo.kmp.handball_support.auth.AuthUserStore
 import de.exhumedo.kmp.handball_support.api.dto.CreatePerformanceEvaluationRequestDto
 import de.exhumedo.kmp.handball_support.api.dto.toCreateCommand
 import de.exhumedo.kmp.handball_support.api.dto.toResponseDto
+import de.exhumedo.kmp.handball_support.domain.rating.model.EvaluatorReference
 import de.exhumedo.kmp.handball_support.domain.rating.repository.PerformanceEvaluationRepository
 import de.exhumedo.kmp.handball_support.security.JwtTokenService
 import de.exhumedo.kmp.handball_support.security.authorize
@@ -48,7 +49,7 @@ fun Application.configureRouting(
                 val command = request.toCreateCommand()
                 val saved = applicationService.create(
                     game = command.game,
-                    refereePair = command.refereePair,
+                    evaluator = command.evaluator,
                     tableOfficialTeam = command.tableOfficialTeam,
                     score = command.score,
                     comment = command.comment,
@@ -56,9 +57,7 @@ fun Application.configureRouting(
 
                 call.respond(HttpStatusCode.Created, saved.toResponseDto())
             }
-        }
 
-        route("/api/performance-evaluations") {
             get {
                 if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) == null) return@get
                 val gameId = call.request.queryParameters["gameId"]
@@ -67,16 +66,17 @@ fun Application.configureRouting(
 
                 when {
                     gameId != null -> {
-                        val evaluation = repository.findByGameId(gameId)
-                        if (evaluation == null) {
-                            call.respondNotFound("No evaluation found for game '$gameId'.")
-                        } else {
-                            call.respond(HttpStatusCode.OK, evaluation.toResponseDto())
-                        }
+                        val evaluations = repository.findByGameId(gameId)
+                        call.respond(HttpStatusCode.OK, evaluations.map { it.toResponseDto() })
                     }
 
                     firstRefereeId != null && secondRefereeId != null -> {
-                        val evaluations = repository.findByRefereePairPersonIds(firstRefereeId, secondRefereeId)
+                        val evaluations = repository.findByEvaluatorReference(
+                            EvaluatorReference.RefereeTeam(
+                                firstRefereeId = firstRefereeId,
+                                secondRefereeId = secondRefereeId,
+                            ),
+                        )
                         call.respond(HttpStatusCode.OK, evaluations.map { it.toResponseDto() })
                     }
 
@@ -115,6 +115,11 @@ fun Application.configureRouting(
     }
 }
 
+/**
+ * Responds with a standardized not-found problem payload.
+ *
+ * @param detail Human-readable detail for the missing resource.
+ */
 private suspend fun io.ktor.server.application.ApplicationCall.respondNotFound(detail: String) {
     respondProblem(
         status = HttpStatusCode.NotFound,

@@ -1,9 +1,9 @@
 package de.exhumedo.kmp.handball_support.application
 
 import de.exhumedo.kmp.handball_support.domain.rating.model.EvaluationScore
+import de.exhumedo.kmp.handball_support.domain.rating.model.Evaluator
 import de.exhumedo.kmp.handball_support.domain.rating.model.Game
 import de.exhumedo.kmp.handball_support.domain.rating.model.PerformanceEvaluation
-import de.exhumedo.kmp.handball_support.domain.rating.model.RefereePair
 import de.exhumedo.kmp.handball_support.domain.rating.model.TableOfficialTeam
 import de.exhumedo.kmp.handball_support.domain.rating.repository.PerformanceEvaluationRepository
 import kotlin.time.Clock
@@ -26,7 +26,7 @@ class PerformanceEvaluationApplicationService(
      * Creates and stores a new evaluation.
      *
      * @param game Referenced game.
-     * @param refereePair Referee pair acting as evaluator.
+     * @param evaluator Allowed evaluator acting as voter.
      * @param tableOfficialTeam Evaluated table official team.
      * @param score Raw evaluation score.
      * @param comment Optional free-text comment.
@@ -34,7 +34,7 @@ class PerformanceEvaluationApplicationService(
      */
     suspend fun create(
         game: Game,
-        refereePair: RefereePair,
+        evaluator: Evaluator,
         tableOfficialTeam: TableOfficialTeam,
         score: EvaluationScore,
         comment: String?,
@@ -42,7 +42,7 @@ class PerformanceEvaluationApplicationService(
         val evaluation = PerformanceEvaluation.create(
             id = idGenerator.newId(),
             game = game,
-            refereePair = refereePair,
+            evaluator = evaluator,
             tableOfficialTeam = tableOfficialTeam,
             score = score,
             comment = comment,

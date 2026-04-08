@@ -6,15 +6,14 @@ import kotlin.time.Clock
 /**
  * Aggregate root representing one completed evaluation of a table official team.
  *
- * The aggregate belongs to this application and captures a referee pair's
- * evaluation of one table official team for one game. The domain rule of one
- * evaluation per game is enforced at repository level, not inside this class.
- * This model intentionally has no draft lifecycle: an evaluation is created
- * only once it is complete and ready to persist.
+ * The aggregate belongs to this application and captures one allowed evaluator's
+ * assessment of one table official team for one game. The domain rule is one
+ * evaluation per game and evaluator type. This model intentionally has no draft
+ * lifecycle: an evaluation is created only once it is complete and ready to persist.
  *
  * @property id Unique evaluation identifier supplied by the caller.
  * @property game External game reference being evaluated.
- * @property refereePair Referee pair acting as the collective voter.
+ * @property evaluator Allowed evaluator acting as voter.
  * @property tableOfficialTeam Table official team that is evaluated.
  * @property score Completed evaluation score.
  * @property comment Optional free-text comment attached to the evaluation.
@@ -23,7 +22,7 @@ import kotlin.time.Clock
 class PerformanceEvaluation(
     val id: String,
     val game: Game,
-    val refereePair: RefereePair,
+    val evaluator: Evaluator,
     val tableOfficialTeam: TableOfficialTeam,
     val score: EvaluationScore,
     val comment: String?,
@@ -33,7 +32,7 @@ class PerformanceEvaluation(
         require(id.isNotBlank()) { "PerformanceEvaluation id must not be blank" }
         require(createdAt.isNotBlank()) { "PerformanceEvaluation createdAt must not be blank" }
 
-        val overlappingPerson = refereePair.persons
+        val overlappingPerson = evaluator.persons
             .map { it.id }
             .intersect(tableOfficialTeam.members.map { it.id }.toSet())
             .firstOrNull()
@@ -62,7 +61,7 @@ class PerformanceEvaluation(
      */
     override fun toString(): String {
         return "PerformanceEvaluation(id='$id', gameId='${game.gameId}', " +
-            "referees=${refereePair.persons.size}, tableOfficials=${tableOfficialTeam.members.size})"
+            "evaluator=${evaluator.type}, tableOfficials=${tableOfficialTeam.members.size})"
     }
 
     companion object {
@@ -71,7 +70,7 @@ class PerformanceEvaluation(
          *
          * @param id Unique evaluation identifier.
          * @param game External game reference being evaluated.
-         * @param refereePair Referee pair acting as the collective voter.
+         * @param evaluator Allowed evaluator acting as voter.
          * @param tableOfficialTeam Table official team being evaluated.
          * @param score Completed evaluation score.
          * @param comment Optional free-text comment.
@@ -81,7 +80,7 @@ class PerformanceEvaluation(
         fun create(
             id: String,
             game: Game,
-            refereePair: RefereePair,
+            evaluator: Evaluator,
             tableOfficialTeam: TableOfficialTeam,
             score: EvaluationScore,
             comment: String?,
@@ -90,7 +89,7 @@ class PerformanceEvaluation(
             return PerformanceEvaluation(
                 id = id,
                 game = game,
-                refereePair = refereePair,
+                evaluator = evaluator,
                 tableOfficialTeam = tableOfficialTeam,
                 score = score,
                 comment = comment,

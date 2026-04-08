@@ -25,6 +25,12 @@ internal fun refereePair(): RefereePair = RefereePair(
     secondReferee = RoleAssignment(person("r2"), OfficialRole.SecondReferee),
 )
 
+internal fun refereeTeamEvaluator(): Evaluator = Evaluator.RefereeTeam(refereePair())
+
+internal fun delegateEvaluator(): Evaluator = Evaluator.Delegate(
+    RoleAssignment(person("d1"), OfficialRole.Delegate),
+)
+
 internal fun tableOfficialTeam(): TableOfficialTeam = TableOfficialTeam(
     timeKeeper = RoleAssignment(person("t1"), OfficialRole.TimeKeeper),
     scoreKeeper = RoleAssignment(person("t2"), OfficialRole.ScoreKeeper),

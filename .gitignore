@@ -27,6 +27,7 @@ build/
 .project
 .classpath
 .settings/
+local.properties
 
 # macOS
 .DS_Store

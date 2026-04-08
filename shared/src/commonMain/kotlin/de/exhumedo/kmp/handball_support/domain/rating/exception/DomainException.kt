@@ -42,4 +42,15 @@ sealed class DomainException(message: String) : Exception(message) {
         val actualRole: String,
     ) : DomainException("Expected role $expectedRole but got $actualRole")
 
+    /**
+     * Indicates that an evaluation already exists for the specified game and evaluator type.
+     *
+     * @property gameId The game identifier for which a duplicate was attempted.
+     * @property evaluatorType The evaluator type that already submitted an evaluation.
+     */
+    data class DuplicateGameEvaluation(
+        val gameId: String,
+        val evaluatorType: String,
+    ) : DomainException("An evaluation for game '$gameId' and evaluator type '$evaluatorType' already exists")
+
 }

@@ -219,23 +219,19 @@ paths:
             type: string
       responses:
         '200':
-          description: Evaluation or evaluation list
+          description: Evaluation list
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: '#/components/schemas/PerformanceEvaluationResponse'
-                  - type: array
-                    items:
-                      $ref: '#/components/schemas/PerformanceEvaluationResponse'
+                type: array
+                items:
+                  $ref: '#/components/schemas/PerformanceEvaluationResponse'
         '400':
           $ref: '#/components/responses/ProblemBadRequest'
         '401':
           $ref: '#/components/responses/ProblemUnauthorized'
         '403':
           $ref: '#/components/responses/ProblemForbidden'
-        '404':
-          $ref: '#/components/responses/ProblemNotFound'
     post:
       tags: [Evaluations]
       summary: Create a new performance evaluation
@@ -438,6 +434,12 @@ components:
           type: string
         lastName:
           type: string
+    OfficialRole:
+      type: string
+      enum: [FIRST_REFEREE, SECOND_REFEREE, TIME_KEEPER, SCORE_KEEPER, DELEGATE]
+    EvaluatorType:
+      type: string
+      enum: [REFEREE_TEAM, DELEGATE]
     RoleAssignment:
       type: object
       required: [person, role]
@@ -445,7 +447,7 @@ components:
         person:
           $ref: '#/components/schemas/Person'
         role:
-          type: string
+          $ref: '#/components/schemas/OfficialRole'
     RefereePair:
       type: object
       required: [firstReferee, secondReferee]
@@ -464,6 +466,29 @@ components:
           $ref: '#/components/schemas/RoleAssignment'
         delegate:
           $ref: '#/components/schemas/RoleAssignment'
+    Evaluator:
+      type: object
+      required: [type]
+      properties:
+        type:
+          $ref: '#/components/schemas/EvaluatorType'
+        refereePair:
+          $ref: '#/components/schemas/RefereePair'
+        delegate:
+          $ref: '#/components/schemas/RoleAssignment'
+      allOf:
+        - if:
+            properties:
+              type:
+                const: REFEREE_TEAM
+          then:
+            required: [refereePair]
+        - if:
+            properties:
+              type:
+                const: DELEGATE
+          then:
+            required: [delegate]
     Game:
       type: object
       required: [gameId, date, homeTeam, awayTeam, venue]
@@ -497,12 +522,12 @@ components:
           maximum: 10
     CreatePerformanceEvaluationRequest:
       type: object
-      required: [game, refereePair, tableOfficialTeam, score]
+      required: [game, evaluator, tableOfficialTeam, score]
       properties:
         game:
           $ref: '#/components/schemas/Game'
-        refereePair:
-          $ref: '#/components/schemas/RefereePair'
+        evaluator:
+          $ref: '#/components/schemas/Evaluator'
         tableOfficialTeam:
           $ref: '#/components/schemas/TableOfficialTeam'
         score:
@@ -511,14 +536,14 @@ components:
           type: string
     PerformanceEvaluationResponse:
       type: object
-      required: [id, game, refereePair, tableOfficialTeam, score, weightedTotalScore, createdAt]
+      required: [id, game, evaluator, tableOfficialTeam, score, weightedTotalScore, createdAt]
       properties:
         id:
           type: string
         game:
           $ref: '#/components/schemas/Game'
-        refereePair:
-          $ref: '#/components/schemas/RefereePair'
+        evaluator:
+          $ref: '#/components/schemas/Evaluator'
         tableOfficialTeam:
           $ref: '#/components/schemas/TableOfficialTeam'
         score:
