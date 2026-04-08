@@ -17,8 +17,12 @@ application {
 dependencies {
     implementation(projects.shared)
     implementation(libs.logback)
+    implementation(libs.auth0.jwt)
+    implementation(libs.ktor.serverAuth)
+    implementation(libs.ktor.serverAuthJwt)
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverContentNegotiation)
+    implementation(libs.ktor.serverCors)
     implementation(libs.ktor.serverNetty)
     implementation(libs.ktor.serverStatusPages)
     implementation(libs.ktor.serializationKotlinxJson)

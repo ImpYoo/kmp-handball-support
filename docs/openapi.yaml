@@ -1,0 +1,533 @@
+openapi: 3.1.0
+info:
+  title: Handball Support API
+  version: 1.0.0
+  description: |
+    REST API for handball table-official performance evaluations and local JWT-based user administration.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+tags:
+  - name: Health
+  - name: Auth
+  - name: Evaluations
+paths:
+  /:
+    get:
+      tags: [Health]
+      summary: Root greeting endpoint
+      responses:
+        '200':
+          description: Greeting response
+          content:
+            text/plain:
+              schema:
+                type: string
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness endpoint
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: UP
+  /api/auth/token:
+    post:
+      tags: [Auth]
+      summary: Issue a JWT access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+      responses:
+        '200':
+          description: Token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '429':
+          $ref: '#/components/responses/ProblemTooManyRequests'
+  /api/auth/users:
+    get:
+      tags: [Auth]
+      summary: List authentication users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Auth users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuthUserResponse'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+    post:
+      tags: [Auth]
+      summary: Create an authentication user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuthUserRequest'
+      responses:
+        '201':
+          description: Auth user created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserResponse'
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '409':
+          $ref: '#/components/responses/ProblemConflict'
+  /api/auth/users/{username}:
+    get:
+      tags: [Auth]
+      summary: Fetch one authentication user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UsernamePath'
+      responses:
+        '200':
+          description: Auth user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserResponse'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+    put:
+      tags: [Auth]
+      summary: Update an authentication user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UsernamePath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAuthUserRequest'
+      responses:
+        '200':
+          description: Updated auth user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserResponse'
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+        '409':
+          $ref: '#/components/responses/ProblemConflict'
+    delete:
+      tags: [Auth]
+      summary: Delete an authentication user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UsernamePath'
+      responses:
+        '204':
+          description: Auth user deleted
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+        '409':
+          $ref: '#/components/responses/ProblemConflict'
+  /api/auth/users/{username}/revoke-tokens:
+    post:
+      tags: [Auth]
+      summary: Revoke all active tokens for a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UsernamePath'
+      responses:
+        '200':
+          description: Tokens revoked and auth user returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserResponse'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+  /api/performance-evaluations:
+    get:
+      tags: [Evaluations]
+      summary: List or filter evaluations
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: gameId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: firstRefereeId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: secondRefereeId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Evaluation or evaluation list
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/PerformanceEvaluationResponse'
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/PerformanceEvaluationResponse'
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+    post:
+      tags: [Evaluations]
+      summary: Create a new performance evaluation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePerformanceEvaluationRequest'
+      responses:
+        '201':
+          description: Evaluation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceEvaluationResponse'
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '409':
+          $ref: '#/components/responses/ProblemConflict'
+  /api/performance-evaluations/{id}:
+    get:
+      tags: [Evaluations]
+      summary: Fetch an evaluation by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Evaluation found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceEvaluationResponse'
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '403':
+          $ref: '#/components/responses/ProblemForbidden'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    UsernamePath:
+      name: username
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    ProblemBadRequest:
+      description: Bad request
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProblemUnauthorized:
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProblemForbidden:
+      description: Forbidden
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProblemNotFound:
+      description: Not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProblemConflict:
+      description: Conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProblemTooManyRequests:
+      description: Throttled
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, detail, instance]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+    TokenRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+    TokenResponse:
+      type: object
+      required: [accessToken, tokenType, expiresAt, role]
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresAt:
+          type: string
+          format: date-time
+        role:
+          type: string
+          enum: [admin, referee, viewer]
+    AuthRole:
+      type: string
+      enum: [ADMIN, REFEREE, VIEWER]
+    CreateAuthUserRequest:
+      type: object
+      required: [username, password, role, enabled]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+        role:
+          $ref: '#/components/schemas/AuthRole'
+        enabled:
+          type: boolean
+    UpdateAuthUserRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          format: password
+        role:
+          $ref: '#/components/schemas/AuthRole'
+        enabled:
+          type: boolean
+    AuthUserResponse:
+      type: object
+      required: [username, role, enabled, createdAt, updatedAt]
+      properties:
+        username:
+          type: string
+        role:
+          $ref: '#/components/schemas/AuthRole'
+        enabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        tokenInvalidBefore:
+          type: string
+          format: date-time
+          nullable: true
+    Person:
+      type: object
+      required: [id, firstName, lastName]
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+    RoleAssignment:
+      type: object
+      required: [person, role]
+      properties:
+        person:
+          $ref: '#/components/schemas/Person'
+        role:
+          type: string
+    RefereePair:
+      type: object
+      required: [firstReferee, secondReferee]
+      properties:
+        firstReferee:
+          $ref: '#/components/schemas/RoleAssignment'
+        secondReferee:
+          $ref: '#/components/schemas/RoleAssignment'
+    TableOfficialTeam:
+      type: object
+      required: [timeKeeper, scoreKeeper]
+      properties:
+        timeKeeper:
+          $ref: '#/components/schemas/RoleAssignment'
+        scoreKeeper:
+          $ref: '#/components/schemas/RoleAssignment'
+        delegate:
+          $ref: '#/components/schemas/RoleAssignment'
+    Game:
+      type: object
+      required: [gameId, date, homeTeam, awayTeam, venue]
+      properties:
+        gameId:
+          type: string
+        date:
+          type: string
+          format: date
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        venue:
+          type: string
+    EvaluationScore:
+      type: object
+      required: [appearance, influence, teamwork]
+      properties:
+        appearance:
+          type: integer
+          minimum: 1
+          maximum: 10
+        influence:
+          type: integer
+          minimum: 1
+          maximum: 10
+        teamwork:
+          type: integer
+          minimum: 1
+          maximum: 10
+    CreatePerformanceEvaluationRequest:
+      type: object
+      required: [game, refereePair, tableOfficialTeam, score]
+      properties:
+        game:
+          $ref: '#/components/schemas/Game'
+        refereePair:
+          $ref: '#/components/schemas/RefereePair'
+        tableOfficialTeam:
+          $ref: '#/components/schemas/TableOfficialTeam'
+        score:
+          $ref: '#/components/schemas/EvaluationScore'
+        comment:
+          type: string
+    PerformanceEvaluationResponse:
+      type: object
+      required: [id, game, refereePair, tableOfficialTeam, score, weightedTotalScore, createdAt]
+      properties:
+        id:
+          type: string
+        game:
+          $ref: '#/components/schemas/Game'
+        refereePair:
+          $ref: '#/components/schemas/RefereePair'
+        tableOfficialTeam:
+          $ref: '#/components/schemas/TableOfficialTeam'
+        score:
+          $ref: '#/components/schemas/EvaluationScore'
+        comment:
+          type: string
+          nullable: true
+        weightedTotalScore:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time

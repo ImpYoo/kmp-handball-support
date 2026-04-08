@@ -1,0 +1,56 @@
+[
+    {
+        "id": "475b992b-89a0-4e37-9d8b-61128776ec19",
+        "game": {
+            "gameId": "$gameId",
+            "date": "2026-04-06",
+            "homeTeam": "THW Kiel",
+            "awayTeam": "SG Flensburg",
+            "venue": "Sparkassen-Arena"
+        },
+        "refereePair": {
+            "firstReferee": {
+                "person": {
+                    "id": "$firstRefereeId",
+                    "firstName": "Max",
+                    "lastName": "Mueller"
+                },
+                "role": "FIRST_REFEREE"
+            },
+            "secondReferee": {
+                "person": {
+                    "id": "$secondRefereeId",
+                    "firstName": "Anna",
+                    "lastName": "Schmidt"
+                },
+                "role": "SECOND_REFEREE"
+            }
+        },
+        "tableOfficialTeam": {
+            "timeKeeper": {
+                "person": {
+                    "id": "T1-$gameId",
+                    "firstName": "Jan",
+                    "lastName": "Weber"
+                },
+                "role": "TIME_KEEPER"
+            },
+            "scoreKeeper": {
+                "person": {
+                    "id": "T2-$gameId",
+                    "firstName": "Lisa",
+                    "lastName": "Koch"
+                },
+                "role": "SCORE_KEEPER"
+            },
+            "delegate": null
+        },
+        "score": {
+            "appearance": 8,
+            "influence": 7,
+            "teamwork": 9
+        },
+        "comment": "Solid performance",
+        "createdAt": "2026-04-07T11:53:08.981881Z"
+    }
+]

@@ -1,0 +1,10 @@
+[
+    {
+        "username": "admin",
+        "passwordHash": "pbkdf2_sha256$210000$/gMdKKb9IGjsWcgghBGlVw==$fXfwtp923fmjGjVC5LwV9DLl5mkQv+VlS0c1CiQlFkM=",
+        "role": "admin",
+        "enabled": true,
+        "createdAt": "2026-04-07T09:51:55.074726Z",
+        "updatedAt": "2026-04-07T09:51:55.074726Z"
+    }
+]

@@ -1,4 +1,5 @@
 # General Kotlin/Java
+.env
 *.class
 *.log
 *.tmp

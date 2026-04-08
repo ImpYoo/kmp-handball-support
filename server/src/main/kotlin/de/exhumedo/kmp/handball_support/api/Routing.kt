@@ -2,10 +2,14 @@ package de.exhumedo.kmp.handball_support.api
 
 import de.exhumedo.kmp.handball_support.Greeting
 import de.exhumedo.kmp.handball_support.application.PerformanceEvaluationApplicationService
+import de.exhumedo.kmp.handball_support.auth.AuthRole
+import de.exhumedo.kmp.handball_support.auth.AuthUserStore
 import de.exhumedo.kmp.handball_support.api.dto.CreatePerformanceEvaluationRequestDto
 import de.exhumedo.kmp.handball_support.api.dto.toCreateCommand
 import de.exhumedo.kmp.handball_support.api.dto.toResponseDto
 import de.exhumedo.kmp.handball_support.domain.rating.repository.PerformanceEvaluationRepository
+import de.exhumedo.kmp.handball_support.security.JwtTokenService
+import de.exhumedo.kmp.handball_support.security.authorize
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.request.receive
@@ -20,10 +24,13 @@ import io.ktor.server.routing.routing
  *
  * @param repository Domain repository adapter.
  * @param applicationService Application service handling evaluation creation.
+ * @param tokenService Token service used to verify bearer tokens.
  */
 fun Application.configureRouting(
     repository: PerformanceEvaluationRepository,
     applicationService: PerformanceEvaluationApplicationService,
+    tokenService: JwtTokenService,
+    authUserStore: AuthUserStore,
 ) {
     routing {
         get("/") {
@@ -36,6 +43,7 @@ fun Application.configureRouting(
 
         route("/api/performance-evaluations") {
             post {
+                if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE) == null) return@post
                 val request = call.receive<CreatePerformanceEvaluationRequestDto>()
                 val command = request.toCreateCommand()
                 val saved = applicationService.create(
@@ -48,8 +56,11 @@ fun Application.configureRouting(
 
                 call.respond(HttpStatusCode.Created, saved.toResponseDto())
             }
+        }
 
+        route("/api/performance-evaluations") {
             get {
+                if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) == null) return@get
                 val gameId = call.request.queryParameters["gameId"]
                 val firstRefereeId = call.request.queryParameters["firstRefereeId"]
                 val secondRefereeId = call.request.queryParameters["secondRefereeId"]
@@ -85,6 +96,7 @@ fun Application.configureRouting(
             }
 
             get("/{id}") {
+                if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) == null) return@get
                 val id = call.parameters["id"]
                     ?: return@get call.respondProblem(
                         status = HttpStatusCode.BadRequest,

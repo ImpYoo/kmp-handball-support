@@ -60,6 +60,60 @@ in your IDE’s toolbar or run it directly from the terminal:
   .\gradlew.bat :server:run
   ```
 
+### Server First Startup
+
+The server now manages API users itself and stores them in `server/data/auth-users.json`.
+Passwords are stored hashed, never in plain text.
+
+On the very first startup, if the auth-user file is empty, the server requires a bootstrap admin password.
+Without it, startup fails intentionally.
+
+Minimum first-start environment:
+
+- `AUTH_BOOTSTRAP_ADMIN_PASSWORD`
+
+Optional first-start environment:
+
+- `AUTH_BOOTSTRAP_ADMIN_USERNAME`
+- `AUTH_USERS_FILE`
+- `PERFORMANCE_EVALUATIONS_FILE`
+- `JWT_SECRET`
+- `JWT_ISSUER`
+- `JWT_AUDIENCE`
+- `JWT_REALM`
+- `JWT_TTL_SECONDS`
+- `CORS_ALLOWED_ORIGINS`
+
+Example first startup on macOS/Linux:
+
+```shell
+AUTH_BOOTSTRAP_ADMIN_PASSWORD='AdminPass123!' \
+JWT_SECRET='change-this-secret-for-real-use' \
+./gradlew :server:run
+```
+
+Example first startup on Windows PowerShell:
+
+```powershell
+$env:AUTH_BOOTSTRAP_ADMIN_PASSWORD='AdminPass123!'
+$env:JWT_SECRET='change-this-secret-for-real-use'
+.\gradlew.bat :server:run
+```
+
+After the first successful startup:
+
+- the bootstrap admin user is written to `server/data/auth-users.json`
+- the stored password is hashed
+- you can authenticate through `POST /api/auth/token`
+- you can manage auth users through the admin-only `/api/auth/users` routes
+
+For local setup, see [.env.example](./.env.example).
+
+API contract and deployment notes:
+
+- OpenAPI contract: [docs/openapi.yaml](./docs/openapi.yaml)
+- Public deployment checklist: [docs/public-deployment-checklist.md](./docs/public-deployment-checklist.md)
+
 ### Build and Run Web Application
 
 To build and run the development version of the web app, use the run configuration from the run widget
