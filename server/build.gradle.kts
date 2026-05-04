@@ -15,18 +15,22 @@ application {
 }
 
 dependencies {
-    implementation(projects.shared)
-    implementation(libs.logback)
     implementation(libs.auth0.jwt)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.ktor.clientCio)
+    implementation(libs.ktor.clientContentNegotiation)
+    implementation(libs.ktor.clientCore)
+    implementation(libs.ktor.serializationKotlinxJson)
     implementation(libs.ktor.serverAuth)
     implementation(libs.ktor.serverAuthJwt)
-    implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverContentNegotiation)
+    implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverCors)
     implementation(libs.ktor.serverNetty)
     implementation(libs.ktor.serverStatusPages)
-    implementation(libs.ktor.serializationKotlinxJson)
-    implementation(libs.kotlinx.serialization.json)
-    testImplementation(libs.ktor.serverTestHost)
+    implementation(libs.logback)
+    implementation(projects.shared)
     testImplementation(libs.kotlin.testJunit)
+    testImplementation(libs.ktor.clientMock)
+    testImplementation(libs.ktor.serverTestHost)
 }

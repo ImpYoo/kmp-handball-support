@@ -14,14 +14,14 @@ import java.nio.file.Paths
  * @property jwt JWT signing and verification configuration.
  * @property bootstrapAdmin Bootstrap admin configuration used for first startup.
  * @property http HTTP-facing configuration such as allowed CORS origins.
- * @property developmentMode Whether development-friendly fallbacks are allowed.
+ * @property externalApi Outbound external API integration configuration.
  */
 data class AppConfig(
     val storage: StorageConfig,
     val jwt: JwtConfig,
     val bootstrapAdmin: BootstrapAdmin?,
     val http: HttpConfig,
-    val developmentMode: Boolean,
+    val externalApi: ExternalApiConfig = ExternalApiConfig(),
 )
 
 /**
@@ -45,8 +45,34 @@ data class HttpConfig(
 )
 
 /**
- * Loads application configuration from environment variables, JVM properties, and a local `.env` file.
+ * Outbound integration configuration for a remote HTTP API (Sportradar FMP feed).
+ *
+ * @property enabled Whether the outbound integration is active.
+ * @property baseUrl Base URL of the remote API.
+ * @property language Feed language segment (e.g. "en").
+ * @property timeZone Feed time-zone segment (e.g. "Europe:Berlin").
+ * @property product Feed product segment (e.g. "gismo").
+ * @property apiKey Optional API key sent as a request header or query parameter.
+ * @property apiKeyHeaderName Header name used to transmit the API key.
+ * @property sendApiKeyAsQueryParam When true the key is appended as a query parameter instead of a header.
+ * @property apiKeyQueryParamName Query parameter name when [sendApiKeyAsQueryParam] is true.
+ * @property requestTimeoutMillis Per-request timeout in milliseconds.
+ * @property connectTimeoutMillis Connection timeout in milliseconds.
  */
+data class ExternalApiConfig(
+    val enabled: Boolean = false,
+    val baseUrl: String = "https://hbl.fmp.sportradar.com",
+    val language: String = "en",
+    val timeZone: String = "Europe:Berlin",
+    val product: String = "gismo",
+    val apiKey: String? = null,
+    val apiKeyHeaderName: String = "X-API-Key",
+    val sendApiKeyAsQueryParam: Boolean = false,
+    val apiKeyQueryParamName: String = "api_key",
+    val requestTimeoutMillis: Long = 5_000L,
+    val connectTimeoutMillis: Long = 3_000L,
+)
+
 object AppConfigLoader {
     /**
      * Resolves the effective application configuration.
@@ -128,7 +154,63 @@ object AppConfigLoader {
                     dotEnv = dotEnv,
                 ),
             ),
-            developmentMode = developmentMode,
+            externalApi = ExternalApiConfig(
+                enabled = resolveBoolean(
+                    envKey = "EXTERNAL_API_ENABLED",
+                    systemPropertyKey = "external.api.enabled",
+                    dotEnv = dotEnv,
+                ) ?: false,
+                baseUrl = resolveConfigValue(
+                    envKey = "EXTERNAL_API_BASE_URL",
+                    systemPropertyKey = "external.api.base-url",
+                    dotEnv = dotEnv,
+                ) ?: "https://hbl.fmp.sportradar.com",
+                language = resolveConfigValue(
+                    envKey = "EXTERNAL_API_LANGUAGE",
+                    systemPropertyKey = "external.api.language",
+                    dotEnv = dotEnv,
+                ) ?: "en",
+                timeZone = resolveConfigValue(
+                    envKey = "EXTERNAL_API_TIMEZONE",
+                    systemPropertyKey = "external.api.timezone",
+                    dotEnv = dotEnv,
+                ) ?: "Europe:Berlin",
+                product = resolveConfigValue(
+                    envKey = "EXTERNAL_API_PRODUCT",
+                    systemPropertyKey = "external.api.product",
+                    dotEnv = dotEnv,
+                ) ?: "gismo",
+                apiKey = resolveConfigValue(
+                    envKey = "EXTERNAL_API_KEY",
+                    systemPropertyKey = "external.api.key",
+                    dotEnv = dotEnv,
+                ),
+                apiKeyHeaderName = resolveConfigValue(
+                    envKey = "EXTERNAL_API_KEY_HEADER",
+                    systemPropertyKey = "external.api.key-header",
+                    dotEnv = dotEnv,
+                ) ?: "X-API-Key",
+                sendApiKeyAsQueryParam = resolveBoolean(
+                    envKey = "EXTERNAL_API_KEY_AS_QUERY_PARAM",
+                    systemPropertyKey = "external.api.key-as-query-param",
+                    dotEnv = dotEnv,
+                ) ?: false,
+                apiKeyQueryParamName = resolveConfigValue(
+                    envKey = "EXTERNAL_API_KEY_QUERY_PARAM_NAME",
+                    systemPropertyKey = "external.api.key-query-param-name",
+                    dotEnv = dotEnv,
+                ) ?: "api_key",
+                requestTimeoutMillis = resolveConfigValue(
+                    envKey = "EXTERNAL_API_REQUEST_TIMEOUT_MS",
+                    systemPropertyKey = "external.api.request-timeout-ms",
+                    dotEnv = dotEnv,
+                )?.toLongOrNull() ?: 5_000L,
+                connectTimeoutMillis = resolveConfigValue(
+                    envKey = "EXTERNAL_API_CONNECT_TIMEOUT_MS",
+                    systemPropertyKey = "external.api.connect-timeout-ms",
+                    dotEnv = dotEnv,
+                )?.toLongOrNull() ?: 3_000L,
+            ),
         )
 
         validate(config)
@@ -136,17 +218,17 @@ object AppConfigLoader {
     }
 
     private fun resolveBootstrapAdmin(dotEnv: Map<String, String>): BootstrapAdmin? {
+        val username = resolveConfigValue(
+            envKey = "AUTH_BOOTSTRAP_ADMIN_USERNAME",
+            systemPropertyKey = "auth.bootstrap.admin.username",
+            dotEnv = dotEnv,
+        ) ?: return null
+
         val password = resolveConfigValue(
             envKey = "AUTH_BOOTSTRAP_ADMIN_PASSWORD",
             systemPropertyKey = "auth.bootstrap.admin.password",
             dotEnv = dotEnv,
         ) ?: return null
-
-        val username = resolveConfigValue(
-            envKey = "AUTH_BOOTSTRAP_ADMIN_USERNAME",
-            systemPropertyKey = "auth.bootstrap.admin.username",
-            dotEnv = dotEnv,
-        ) ?: "admin"
 
         return BootstrapAdmin(
             username = username,
@@ -230,6 +312,26 @@ object AppConfigLoader {
         }
         require(config.http.corsAllowedOrigins.none(String::isBlank)) {
             "CORS_ALLOWED_ORIGINS must not contain blank origins."
+        }
+        require(config.externalApi.apiKeyHeaderName.isNotBlank()) {
+            "EXTERNAL_API_KEY_HEADER must not be blank."
+        }
+        require(config.externalApi.requestTimeoutMillis > 0) {
+            "EXTERNAL_API_REQUEST_TIMEOUT_MS must be greater than zero."
+        }
+        require(config.externalApi.connectTimeoutMillis > 0) {
+            "EXTERNAL_API_CONNECT_TIMEOUT_MS must be greater than zero."
+        }
+        if (config.externalApi.enabled) {
+            require(config.externalApi.baseUrl.isNotBlank()) {
+                "EXTERNAL_API_BASE_URL is required when EXTERNAL_API_ENABLED=true."
+            }
+            require(
+                config.externalApi.baseUrl.startsWith("http://") ||
+                    config.externalApi.baseUrl.startsWith("https://"),
+            ) {
+                "EXTERNAL_API_BASE_URL must start with http:// or https://."
+            }
         }
 
         config.bootstrapAdmin?.let { bootstrapAdmin ->

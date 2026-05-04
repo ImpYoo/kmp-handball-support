@@ -47,7 +47,6 @@ internal fun createTestAppConfig(
         http = HttpConfig(
             corsAllowedOrigins = emptySet(),
         ),
-        developmentMode = true,
     )
 }
 

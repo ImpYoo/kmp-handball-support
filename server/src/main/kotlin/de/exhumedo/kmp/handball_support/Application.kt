@@ -88,3 +88,4 @@ private fun defaultAuthUserStore(
         bootstrapAdmin = appConfig.bootstrapAdmin,
     )
 }
+
