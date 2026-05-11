@@ -32,6 +32,9 @@ fun Application.configureAuthRouting(
 ) {
     routing {
         route("/api/auth") {
+
+            // ── Login ──────────────────────────────────────────────────────────
+            // POST /api/auth/token  →  exchange credentials for a JWT
             post("/token") {
                 val request = call.receive<TokenRequestDto>()
                 val user = authenticationService.authenticate(request.username, request.password)
@@ -43,7 +46,6 @@ fun Application.configureAuthRouting(
                     )
                     return@post
                 }
-
                 val token = tokenService.issueToken(user)
                 call.respond(
                     HttpStatusCode.OK,
@@ -56,6 +58,39 @@ fun Application.configureAuthRouting(
                 )
             }
 
+            // ── Logout ─────────────────────────────────────────────────────────
+            // POST /api/auth/logout  →  invalidate all active tokens for the caller
+            post("/logout") {
+                val actor = call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) ?: return@post
+                authUserService.revokeTokens(actorUsername = actor.subject, username = actor.subject)
+                call.respond(HttpStatusCode.NoContent)
+            }
+
+            // ── Self-service ───────────────────────────────────────────────────
+            route("/users/me") {
+
+                // GET /api/auth/users/me  →  own profile
+                get {
+                    val actor = call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) ?: return@get
+                    val user = authUserService.findByUsername(actor.subject)
+                        ?: throw AuthUserNotFoundException(actor.subject)
+                    call.respond(HttpStatusCode.OK, user.toResponseDto())
+                }
+
+                // POST /api/auth/users/me/change-password  →  change own password (requires current password)
+                post("/change-password") {
+                    val actor = call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) ?: return@post
+                    val request = call.receive<ChangePasswordRequestDto>()
+                    val updated = authUserService.changePassword(
+                        actorUsername = actor.subject,
+                        currentPassword = request.currentPassword,
+                        newPassword = request.newPassword,
+                    )
+                    call.respond(HttpStatusCode.OK, updated.toResponseDto())
+                }
+            }
+
+            // ── Admin: user management ─────────────────────────────────────────
             route("/users") {
                 get {
                     if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN) == null) return@get

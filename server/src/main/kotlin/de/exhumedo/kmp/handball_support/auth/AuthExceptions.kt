@@ -35,6 +35,15 @@ class AuthBootstrapException(
 ) : IllegalStateException(message)
 
 /**
+ * Raised when a user provides an incorrect current password during a self-service password change.
+ *
+ * @property username Username that failed verification.
+ */
+class AuthenticationFailedException(
+    val username: String,
+) : IllegalStateException("Current password is incorrect for user '$username'.")
+
+/**
  * Raised when repeated failed login attempts trigger a temporary authentication block.
  *
  * @property username Throttled username.

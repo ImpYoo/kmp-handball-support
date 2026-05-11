@@ -327,4 +327,176 @@ class AuthApiTest {
         assertEquals(HttpStatusCode.Unauthorized, protectedResponse.status)
         assertTrue(protectedResponse.bodyAsText().contains("Token is missing, invalid, or expired"))
     }
+
+    // ── GET /api/auth/users/me ─────────────────────────────────────────────────
+
+    @Test
+    fun getMeReturnsOwnProfile() = testApplication {
+        application {
+            module(
+                appConfig = createTestAppConfig(),
+                repository = JsonFilePerformanceEvaluationRepository(Files.createTempFile("performance-evaluations", ".json")),
+                authUserStore = createTestAuthUserStore(),
+            )
+        }
+
+        val token = issueToken("referee", "RefereePass123!")
+        val response = client.get("/api/auth/users/me") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = response.bodyAsText()
+        assertTrue(body.contains("referee"))
+        assertTrue(body.contains("REFEREE"))
+        assertTrue(!body.contains("passwordHash"))
+    }
+
+    @Test
+    fun getMeWorksForAllRoles() = testApplication {
+        application {
+            module(
+                appConfig = createTestAppConfig(),
+                repository = JsonFilePerformanceEvaluationRepository(Files.createTempFile("performance-evaluations", ".json")),
+                authUserStore = createTestAuthUserStore(),
+            )
+        }
+
+        for ((username, password) in listOf(
+            "admin" to "AdminPass123!",
+            "referee" to "RefereePass123!",
+            "viewer" to "ViewerPass123!",
+        )) {
+            val token = issueToken(username, password)
+            val response = client.get("/api/auth/users/me") {
+                header(HttpHeaders.Authorization, "Bearer $token")
+            }
+            assertEquals(HttpStatusCode.OK, response.status, "GET /me failed for $username")
+        }
+    }
+
+    @Test
+    fun getMeWithoutTokenReturnsUnauthorized() = testApplication {
+        application {
+            module(
+                appConfig = createTestAppConfig(),
+                repository = JsonFilePerformanceEvaluationRepository(Files.createTempFile("performance-evaluations", ".json")),
+                authUserStore = createTestAuthUserStore(),
+            )
+        }
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/api/auth/users/me").status)
+    }
+
+    // ── POST /api/auth/logout ──────────────────────────────────────────────────
+
+    @Test
+    fun logoutInvalidatesSubsequentRequestsWithSameToken() = testApplication {
+        application {
+            module(
+                appConfig = createTestAppConfig(),
+                repository = JsonFilePerformanceEvaluationRepository(Files.createTempFile("performance-evaluations", ".json")),
+                authUserStore = createTestAuthUserStore(),
+            )
+        }
+
+        val token = issueToken("referee", "RefereePass123!")
+
+        // Token works before logout
+        assertEquals(HttpStatusCode.OK, client.get("/api/auth/users/me") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }.status)
+
+        // Logout
+        assertEquals(HttpStatusCode.NoContent, client.post("/api/auth/logout") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }.status)
+
+        // Same token is now rejected
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/api/auth/users/me") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }.status)
+    }
+
+    @Test
+    fun logoutWithoutTokenReturnsUnauthorized() = testApplication {
+        application {
+            module(
+                appConfig = createTestAppConfig(),
+                repository = JsonFilePerformanceEvaluationRepository(Files.createTempFile("performance-evaluations", ".json")),
+                authUserStore = createTestAuthUserStore(),
+            )
+        }
+        assertEquals(HttpStatusCode.Unauthorized, client.post("/api/auth/logout").status)
+    }
+
+    // ── POST /api/auth/users/me/change-password ────────────────────────────────
+
+    @Test
+    fun changePasswordWithCorrectCurrentPasswordSucceeds() = testApplication {
+        application {
+            module(
+                appConfig = createTestAppConfig(),
+                repository = JsonFilePerformanceEvaluationRepository(Files.createTempFile("performance-evaluations", ".json")),
+                authUserStore = createTestAuthUserStore(),
+            )
+        }
+
+        val token = issueToken("referee", "RefereePass123!")
+        val changeResponse = client.post("/api/auth/users/me/change-password") {
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            header(HttpHeaders.Authorization, "Bearer $token")
+            setBody("""{"currentPassword":"RefereePass123!","newPassword":"NewStrongPass1@"}""")
+        }
+        assertEquals(HttpStatusCode.OK, changeResponse.status)
+
+        // Old password no longer works
+        assertEquals(HttpStatusCode.Unauthorized, client.post("/api/auth/token") {
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            setBody("""{"username":"referee","password":"RefereePass123!"}""")
+        }.status)
+
+        // New password works
+        assertEquals(HttpStatusCode.OK, client.post("/api/auth/token") {
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            setBody("""{"username":"referee","password":"NewStrongPass1@"}""")
+        }.status)
+    }
+
+    @Test
+    fun changePasswordWithWrongCurrentPasswordReturnsUnauthorized() = testApplication {
+        application {
+            module(
+                appConfig = createTestAppConfig(),
+                repository = JsonFilePerformanceEvaluationRepository(Files.createTempFile("performance-evaluations", ".json")),
+                authUserStore = createTestAuthUserStore(),
+            )
+        }
+
+        val token = issueToken("referee", "RefereePass123!")
+        val response = client.post("/api/auth/users/me/change-password") {
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            header(HttpHeaders.Authorization, "Bearer $token")
+            setBody("""{"currentPassword":"WrongPass999!","newPassword":"NewStrongPass1@"}""")
+        }
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
+
+    @Test
+    fun changePasswordToWeakPasswordReturnsBadRequest() = testApplication {
+        application {
+            module(
+                appConfig = createTestAppConfig(),
+                repository = JsonFilePerformanceEvaluationRepository(Files.createTempFile("performance-evaluations", ".json")),
+                authUserStore = createTestAuthUserStore(),
+            )
+        }
+
+        val token = issueToken("referee", "RefereePass123!")
+        val response = client.post("/api/auth/users/me/change-password") {
+            header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            header(HttpHeaders.Authorization, "Bearer $token")
+            setBody("""{"currentPassword":"RefereePass123!","newPassword":"weak"}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
 }

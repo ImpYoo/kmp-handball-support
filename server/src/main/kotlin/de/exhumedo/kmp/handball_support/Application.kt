@@ -26,6 +26,9 @@ import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import kotlin.time.Clock
+import org.slf4j.LoggerFactory
+
+private val logger = LoggerFactory.getLogger("de.exhumedo.kmp.handball_support.Application")
 
 /**
  * Server entry point.
@@ -65,7 +68,9 @@ fun Application.module(
         clock = clock,
     )
     val matchApplicationService = MatchApplicationService(
-        phaseRepository = MockPhaseRepository(),
+        phaseRepository = MockPhaseRepository().also {
+            logger.warn("PRODUCTION GAP: MockPhaseRepository is active. Replace with a real PhaseRepository adapter before going live.")
+        },
         voteRepository = PerformanceEvaluationBasedVoteRepository(repository),
     )
     val auditLogger = Slf4jAuthAuditLogger()

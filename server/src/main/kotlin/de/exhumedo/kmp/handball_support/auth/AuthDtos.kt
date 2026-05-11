@@ -46,6 +46,18 @@ enum class AuthRoleDto {
 }
 
 /**
+ * Request DTO for a user changing their own password.
+ *
+ * @property currentPassword The user's current password for verification.
+ * @property newPassword The desired new password.
+ */
+@Serializable
+data class ChangePasswordRequestDto(
+    val currentPassword: String,
+    val newPassword: String,
+)
+
+/**
  * Request DTO for creating a new auth user.
  *
  * @property username Username to create.

@@ -138,6 +138,27 @@ class AuthUserApplicationService(
     }
 
     /**
+     * Allows a user to change their own password after verifying the current one.
+     *
+     * @param actorUsername Username of the requesting user.
+     * @param currentPassword Plain-text current password for verification.
+     * @param newPassword New plain-text password to set.
+     * @return Updated auth user.
+     * @throws AuthenticationFailedException When [currentPassword] is incorrect.
+     */
+    fun changePassword(
+        actorUsername: String,
+        currentPassword: String,
+        newPassword: String,
+    ): AuthUser {
+        val verified = userStore.authenticate(actorUsername, currentPassword)
+            ?: throw de.exhumedo.kmp.handball_support.auth.AuthenticationFailedException(actorUsername)
+        val updated = userStore.updateUser(username = verified.username, password = newPassword)
+        auditLogger.userUpdated(actorUsername, updated.username)
+        return updated
+    }
+
+    /**
      * Revokes all currently active tokens for the target user.
      *
      * @param actorUsername Acting username initiating the revocation.

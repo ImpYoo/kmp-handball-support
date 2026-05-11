@@ -4,6 +4,7 @@ import de.exhumedo.kmp.handball_support.api.dto.ProblemDto
 import de.exhumedo.kmp.handball_support.auth.AuthUserAlreadyExistsException
 import de.exhumedo.kmp.handball_support.domain.rating.exception.DomainException
 import de.exhumedo.kmp.handball_support.auth.AuthUserNotFoundException
+import de.exhumedo.kmp.handball_support.auth.AuthenticationFailedException
 import de.exhumedo.kmp.handball_support.auth.AuthenticationThrottledException
 import de.exhumedo.kmp.handball_support.auth.LastEnabledAdminRemovalException
 import de.exhumedo.kmp.handball_support.config.AppConfig
@@ -12,10 +13,11 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
 import io.ktor.server.plugins.ContentTransformationException
-import io.ktor.server.plugins.calllogging.*
+import io.ktor.server.plugins.calllogging.CallLogging
+import io.ktor.server.plugins.calllogging.processingTimeMillis
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
-import io.ktor.server.plugins.defaultheaders.*
+import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -32,6 +34,7 @@ fun Application.configureHttp(appConfig: AppConfig) {
         header("X-Frame-Options", "DENY")
         header("X-XSS-Protection", "1; mode=block")
         header("Referrer-Policy", "strict-origin-when-cross-origin")
+        header("Content-Security-Policy", "default-src 'none'")
     }
 
     install(CallLogging) {
@@ -49,7 +52,7 @@ fun Application.configureHttp(appConfig: AppConfig) {
     install(ContentNegotiation) {
         json(
             Json {
-                prettyPrint = true
+                prettyPrint = false
                 ignoreUnknownKeys = true
                 encodeDefaults = true
             },
@@ -93,6 +96,13 @@ fun Application.configureHttp(appConfig: AppConfig) {
                 status = HttpStatusCode.BadRequest,
                 title = "Invalid Request",
                 detail = cause.message ?: "Comment exceeds maximum allowed length.",
+            )
+        }
+        exception<AuthenticationFailedException> { call, cause ->
+            call.respondProblem(
+                status = HttpStatusCode.Unauthorized,
+                title = "Unauthorized",
+                detail = cause.message ?: "Current password is incorrect.",
             )
         }
         exception<AuthUserAlreadyExistsException> { call, cause ->

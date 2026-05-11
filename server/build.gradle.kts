@@ -28,7 +28,6 @@ dependencies {
     implementation(libs.ktor.serverCors)
     implementation(libs.ktor.serverDefaultHeaders)
     implementation(libs.ktor.serverNetty)
-    implementation(libs.ktor.serverNetty)
     implementation(libs.ktor.serverStatusPages)
     implementation(libs.logback)
     implementation(projects.shared)

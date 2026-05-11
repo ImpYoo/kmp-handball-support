@@ -24,7 +24,14 @@ fun Application.configureRouting(
 ) {
     routing {
         get("/") { call.respond(HttpStatusCode.OK, mapOf("name" to "Handball Support API", "version" to "1.0.0")) }
-        get("/health") { call.respond(HttpStatusCode.OK, mapOf("status" to "UP")) }
+        get("/health") {
+            try {
+                repository.findAll() // verify the persistence layer is readable
+                call.respond(HttpStatusCode.OK, mapOf("status" to "UP"))
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.ServiceUnavailable, mapOf("status" to "DOWN", "detail" to (e.message ?: "persistence check failed")))
+            }
+        }
         route("/api/performance-evaluations") {
             post {
                 if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE) == null) return@post
