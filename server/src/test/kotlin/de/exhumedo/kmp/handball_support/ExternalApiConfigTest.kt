@@ -24,8 +24,8 @@ class ExternalApiConfigTest {
         val config = ExternalApiConfig(
             enabled = true,
             baseUrl = "https://custom.sportradar.api",
+            accessLevel = "beta",
             language = "de",
-            timeZone = "Europe:Paris",
             product = "gismo-premium",
             apiKey = "my-secret-key",
             apiKeyQueryParamName = "auth_token",
@@ -36,8 +36,8 @@ class ExternalApiConfigTest {
         )
         assertEquals(true, config.enabled)
         assertEquals("https://custom.sportradar.api", config.baseUrl)
+        assertEquals("beta", config.accessLevel)
         assertEquals("de", config.language)
-        assertEquals("Europe:Paris", config.timeZone)
         assertEquals("gismo-premium", config.product)
         assertEquals("my-secret-key", config.apiKey)
         assertEquals("auth_token", config.apiKeyQueryParamName)

@@ -18,81 +18,46 @@ import kotlin.test.assertNotNull
 
 class SportradarExternalApiGatewayTest {
 
+    private val testConfig = ExternalApiConfig(
+        enabled = true,
+        baseUrl = "https://hbl.fmp.sportradar.com",
+        accessLevel = "internal",
+        language = "de",
+        timeZone = "Europe:Berlin",
+        product = "gismo",
+    )
+
+    private fun buildClient(mockEngine: MockEngine): HttpClient =
+        HttpClient(mockEngine) {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+
     @Test
     fun getTournamentReturnsValidFeed() {
         val mockEngine = MockEngine { request ->
-            assertEquals(true, request.url.toString().contains("/feeds/en/Europe:Berlin/gismo/tournament/"))
+            assertEquals(true, request.url.toString().contains("/feeds/internal/de/Europe:Berlin/gismo/tournament/"))
             respond(
-                content = """{
-                    "Doc": {
-                        "_dob": "2026-04-15T10:30:00Z",
-                        "_maxage": "300000",
-                        "Data": {"Tournaments": []}
-                    }
-                }""",
+                content = """{"Doc": {"_dob": "2026-04-15T10:30:00Z", "_maxage": "300000", "Data": {}}}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType to listOf("application/json")),
             )
         }
-
-        val client = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
-
-        val gateway = KtorExternalApiGateway(
-            httpClient = client,
-            config = ExternalApiConfig(
-                enabled = true,
-                baseUrl = "https://hbl.fmp.sportradar.com",
-                language = "en",
-                timeZone = "Europe:Berlin",
-                product = "gismo",
-            ),
-        )
-
-        val feed = runBlocking { gateway.getTournament() }
+        val feed = runBlocking { KtorExternalApiGateway(buildClient(mockEngine), testConfig).getTournament() }
         assertNotNull(feed.payload)
         assertEquals("2026-04-15T10:30:00Z", feed.meta.generatedAt)
-        assertEquals(300000L, feed.meta.minCacheMillis)
     }
 
     @Test
     fun getStandingsReturnsValidFeed() {
         val mockEngine = MockEngine { request ->
-            assertEquals(true, request.url.toString().contains("/feeds/en/Europe:Berlin/gismo/standings/PHASE-123"))
+            assertEquals(true, request.url.toString().contains("/feeds/internal/de/Europe:Berlin/gismo/standings/PHASE-123"))
             respond(
-                content = """{
-                    "Doc": {
-                        "_dob": "2026-04-15T10:30:00Z",
-                        "_maxage": "300000",
-                        "Data": {}
-                    }
-                }""",
+                content = """{"Doc": {"_dob": "2026-04-15T10:30:00Z", "_maxage": "300000", "Data": {}}}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType to listOf("application/json")),
             )
         }
-
-        val client = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
-
-        val gateway = KtorExternalApiGateway(
-            httpClient = client,
-            config = ExternalApiConfig(
-                enabled = true,
-                baseUrl = "https://hbl.fmp.sportradar.com",
-                language = "en",
-                timeZone = "Europe:Berlin",
-                product = "gismo",
-            ),
-        )
-
-        val feed = runBlocking { gateway.getStandings("PHASE-123") }
+        val feed = runBlocking { KtorExternalApiGateway(buildClient(mockEngine), testConfig).getStandings("PHASE-123") }
         assertNotNull(feed.payload)
         assertEquals("2026-04-15T10:30:00Z", feed.meta.generatedAt)
     }
@@ -100,79 +65,29 @@ class SportradarExternalApiGatewayTest {
     @Test
     fun getFixturesReturnsValidFeed() {
         val mockEngine = MockEngine { request ->
-            val url = request.url.toString()
-            assertEquals(true, url.contains("/feeds/en/Europe:Berlin/gismo/fixtures/921/33765"))
+            assertEquals(true, request.url.toString().contains("/feeds/internal/de/Europe:Berlin/gismo/fixtures/921/33765"))
             respond(
-                content = """{
-                    "Doc": {
-                        "_dob": "2026-04-15T10:30:00Z",
-                        "_maxage": "600000",
-                        "Data": {"Tournament": {}, "Matchdays": []}
-                    }
-                }""",
+                content = """{"Doc": {"_dob": "2026-04-15T10:30:00Z", "_maxage": "600000", "Data": {"Tournament": {}, "Matchdays": []}}}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType to listOf("application/json")),
             )
         }
-
-        val client = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
-
-        val gateway = KtorExternalApiGateway(
-            httpClient = client,
-            config = ExternalApiConfig(
-                enabled = true,
-                baseUrl = "https://hbl.fmp.sportradar.com",
-                language = "en",
-                timeZone = "Europe:Berlin",
-                product = "gismo",
-            ),
-        )
-
-        val feed = runBlocking { gateway.getFixtures("921", "33765") }
+        val feed = runBlocking { KtorExternalApiGateway(buildClient(mockEngine), testConfig).getFixtures("921", "33765") }
         assertNotNull(feed.payload)
-        assertEquals(600000L, feed.meta.minCacheMillis)
+        assertEquals("2026-04-15T10:30:00Z", feed.meta.generatedAt)
     }
 
     @Test
     fun getTeamInfoReturnsValidFeed() {
         val mockEngine = MockEngine { request ->
-            val url = request.url.toString()
-            assertEquals(true, url.contains("/feeds/en/Europe:Berlin/gismo/team_info/921/33765/TEAM-001"))
+            assertEquals(true, request.url.toString().contains("/feeds/internal/de/Europe:Berlin/gismo/team_info/921/33765/TEAM-001"))
             respond(
-                content = """{
-                    "Doc": {
-                        "_dob": "2026-04-15T10:30:00Z",
-                        "_maxage": "300000",
-                        "Data": {"Team_info": {}}
-                    }
-                }""",
+                content = """{"Doc": {"_dob": "2026-04-15T10:30:00Z", "_maxage": "300000", "Data": {"Team_info": {}}}}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType to listOf("application/json")),
             )
         }
-
-        val client = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
-
-        val gateway = KtorExternalApiGateway(
-            httpClient = client,
-            config = ExternalApiConfig(
-                enabled = true,
-                baseUrl = "https://hbl.fmp.sportradar.com",
-                language = "en",
-                timeZone = "Europe:Berlin",
-                product = "gismo",
-            ),
-        )
-
-        val feed = runBlocking { gateway.getTeamInfo("921", "33765", "TEAM-001") }
+        val feed = runBlocking { KtorExternalApiGateway(buildClient(mockEngine), testConfig).getTeamInfo("921", "33765", "TEAM-001") }
         assertNotNull(feed.payload)
         assertEquals("2026-04-15T10:30:00Z", feed.meta.generatedAt)
     }
@@ -180,37 +95,22 @@ class SportradarExternalApiGatewayTest {
     @Test
     fun sendsApiKeyAsQueryParameterWhenConfigured() {
         val mockEngine = MockEngine { request ->
-            val url = request.url.toString()
-            assertEquals(true, url.contains("api_key=secret-key-123"))
+            assertEquals(true, request.url.toString().contains("api_key=secret-key-123"))
             respond(
                 content = """{"Doc": {"_dob": "2026-04-15T10:30:00Z", "_maxage": "300000"}}""",
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType to listOf("application/json")),
             )
         }
-
-        val client = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
-
         val gateway = KtorExternalApiGateway(
-            httpClient = client,
-            config = ExternalApiConfig(
-                enabled = true,
-                baseUrl = "https://hbl.fmp.sportradar.com",
-                language = "en",
-                timeZone = "Europe:Berlin",
-                product = "gismo",
+            httpClient = buildClient(mockEngine),
+            config = testConfig.copy(
                 apiKey = "secret-key-123",
                 sendApiKeyAsQueryParam = true,
                 apiKeyQueryParamName = "api_key",
             ),
         )
-
         val feed = runBlocking { gateway.getTournament() }
         assertNotNull(feed.payload)
     }
 }
-

@@ -106,7 +106,7 @@ class KtorExternalApiGateway(
     }
 
     private fun routeBase(): String {
-        return "${config.baseUrl.trimEnd('/')}/feeds/${config.language}/${config.timeZone}/${config.product}"
+        return "${config.baseUrl.trimEnd('/')}/feeds/${config.accessLevel}/${config.language}/${config.timeZone}/${config.product}"
     }
 
     private fun applyAuth(builder: io.ktor.client.request.HttpRequestBuilder) {

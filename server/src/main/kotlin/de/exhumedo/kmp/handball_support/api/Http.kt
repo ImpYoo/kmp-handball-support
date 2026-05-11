@@ -2,26 +2,21 @@ package de.exhumedo.kmp.handball_support.api
 
 import de.exhumedo.kmp.handball_support.api.dto.ProblemDto
 import de.exhumedo.kmp.handball_support.auth.AuthUserAlreadyExistsException
-import de.exhumedo.kmp.handball_support.auth.AuthenticationThrottledException
+import de.exhumedo.kmp.handball_support.domain.rating.exception.DomainException
 import de.exhumedo.kmp.handball_support.auth.AuthUserNotFoundException
+import de.exhumedo.kmp.handball_support.auth.AuthenticationThrottledException
 import de.exhumedo.kmp.handball_support.auth.LastEnabledAdminRemovalException
 import de.exhumedo.kmp.handball_support.config.AppConfig
-import de.exhumedo.kmp.handball_support.domain.rating.exception.DomainException
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.HttpMethod
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.Application
-import io.ktor.server.application.install
-import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.plugins.BadRequestException
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
+import io.ktor.server.plugins.*
 import io.ktor.server.plugins.ContentTransformationException
-import io.ktor.server.plugins.statuspages.StatusPages
-import io.ktor.server.request.path
-import io.ktor.server.response.header
-import io.ktor.server.response.respond
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
@@ -61,7 +56,21 @@ fun Application.configureHttp(appConfig: AppConfig) {
             call.respondProblem(
                 status = HttpStatusCode.Conflict,
                 title = "Conflict",
-                detail = cause.message ?: "An evaluation for this game already exists.",
+                detail = cause.message ?: "An evaluation already exists for this game and evaluator type.",
+            )
+        }
+        exception<DomainException.InvalidRoleAssignment> { call, cause ->
+            call.respondProblem(
+                status = HttpStatusCode.BadRequest,
+                title = "Domain Validation Failed",
+                detail = cause.message ?: "Invalid role assignment.",
+            )
+        }
+        exception<DomainException.CommentTooLong> { call, cause ->
+            call.respondProblem(
+                status = HttpStatusCode.BadRequest,
+                title = "Invalid Request",
+                detail = cause.message ?: "Comment exceeds maximum allowed length.",
             )
         }
         exception<AuthUserAlreadyExistsException> { call, cause ->
@@ -91,13 +100,6 @@ fun Application.configureHttp(appConfig: AppConfig) {
                 title = "Too Many Requests",
                 detail = cause.message ?: "Authentication is temporarily throttled.",
                 retryAfterSeconds = cause.retryAfterSeconds,
-            )
-        }
-        exception<DomainException> { call, cause ->
-            call.respondProblem(
-                status = HttpStatusCode.BadRequest,
-                title = "Domain Validation Failed",
-                detail = cause.message ?: "The request violates domain rules.",
             )
         }
         exception<BadRequestException> { call, cause ->

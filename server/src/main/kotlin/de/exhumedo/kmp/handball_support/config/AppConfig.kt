@@ -62,6 +62,7 @@ data class HttpConfig(
 data class ExternalApiConfig(
     val enabled: Boolean = false,
     val baseUrl: String = "https://hbl.fmp.sportradar.com",
+    val accessLevel: String = "internal",
     val language: String = "en",
     val timeZone: String = "Europe:Berlin",
     val product: String = "gismo",
@@ -165,6 +166,11 @@ object AppConfigLoader {
                     systemPropertyKey = "external.api.base-url",
                     dotEnv = dotEnv,
                 ) ?: "https://hbl.fmp.sportradar.com",
+                accessLevel = resolveConfigValue(
+                    envKey = "EXTERNAL_API_ACCESS_LEVEL",
+                    systemPropertyKey = "external.api.access-level",
+                    dotEnv = dotEnv,
+                ) ?: "internal",
                 language = resolveConfigValue(
                     envKey = "EXTERNAL_API_LANGUAGE",
                     systemPropertyKey = "external.api.language",

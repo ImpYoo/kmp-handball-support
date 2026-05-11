@@ -51,6 +51,8 @@ DerivedData/
 # Desktop
 
 # Server
+server/.env.test
+.env.test
 
 # Other potential temporary/generated files
 **/.DS_Store # Added for macOS for completeness
