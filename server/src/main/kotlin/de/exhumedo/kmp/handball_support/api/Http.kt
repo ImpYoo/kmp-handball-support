@@ -12,18 +12,40 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
 import io.ktor.server.plugins.ContentTransformationException
+import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import org.slf4j.event.Level
 
 /**
  * Configures JSON serialization and problem-style error handling.
  */
 fun Application.configureHttp(appConfig: AppConfig) {
+    install(DefaultHeaders) {
+        header("X-Content-Type-Options", "nosniff")
+        header("X-Frame-Options", "DENY")
+        header("X-XSS-Protection", "1; mode=block")
+        header("Referrer-Policy", "strict-origin-when-cross-origin")
+    }
+
+    install(CallLogging) {
+        level = Level.INFO
+        filter { call -> call.request.path().startsWith("/api") }
+        format { call ->
+            val status = call.response.status()
+            val method = call.request.httpMethod.value
+            val path = call.request.path()
+            val durationMs = call.processingTimeMillis()
+            "$method $path -> ${status?.value} (${durationMs}ms)"
+        }
+    }
+
     install(ContentNegotiation) {
         json(
             Json {

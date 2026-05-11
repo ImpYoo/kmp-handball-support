@@ -2,9 +2,11 @@ package de.exhumedo.kmp.handball_support
 
 import de.exhumedo.kmp.handball_support.application.AuthUserApplicationService
 import de.exhumedo.kmp.handball_support.application.AuthenticationApplicationService
+import de.exhumedo.kmp.handball_support.application.MatchApplicationService
 import de.exhumedo.kmp.handball_support.application.PerformanceEvaluationApplicationService
 import de.exhumedo.kmp.handball_support.application.UuidEvaluationIdGenerator
 import de.exhumedo.kmp.handball_support.api.configureHttp
+import de.exhumedo.kmp.handball_support.api.configurePhaseRouting
 import de.exhumedo.kmp.handball_support.api.configureRouting
 import de.exhumedo.kmp.handball_support.auth.AuthUserStore
 import de.exhumedo.kmp.handball_support.auth.configureAuthRouting
@@ -12,6 +14,8 @@ import de.exhumedo.kmp.handball_support.config.AppConfig
 import de.exhumedo.kmp.handball_support.config.AppConfigLoader
 import de.exhumedo.kmp.handball_support.domain.rating.repository.PerformanceEvaluationRepository
 import de.exhumedo.kmp.handball_support.persistence.JsonFilePerformanceEvaluationRepository
+import de.exhumedo.kmp.handball_support.persistence.MockPhaseRepository
+import de.exhumedo.kmp.handball_support.persistence.PerformanceEvaluationBasedVoteRepository
 import de.exhumedo.kmp.handball_support.persistence.auth.JsonFileAuthUserStore
 import de.exhumedo.kmp.handball_support.security.JwtTokenService
 import de.exhumedo.kmp.handball_support.security.LoginAttemptGuard
@@ -27,8 +31,9 @@ import kotlin.time.Clock
  * Server entry point.
  */
 fun main() {
-    embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0") {
-        module()
+    val appConfig = AppConfigLoader.load()
+    embeddedServer(Netty, port = appConfig.serverPort, host = "0.0.0.0") {
+        module(appConfig = appConfig)
     }.start(wait = true)
 }
 
@@ -59,6 +64,10 @@ fun Application.module(
         idGenerator = UuidEvaluationIdGenerator(),
         clock = clock,
     )
+    val matchApplicationService = MatchApplicationService(
+        phaseRepository = MockPhaseRepository(),
+        voteRepository = PerformanceEvaluationBasedVoteRepository(repository),
+    )
     val auditLogger = Slf4jAuthAuditLogger()
     val authenticationApplicationService = AuthenticationApplicationService(
         userStore = authUserStore,
@@ -75,6 +84,7 @@ fun Application.module(
     configureSecurity(appConfig.jwt, tokenService)
     configureAuthRouting(authenticationApplicationService, authUserApplicationService, tokenService, authUserStore)
     configureRouting(repository, applicationService, tokenService, authUserStore)
+    configurePhaseRouting(matchApplicationService, tokenService, authUserStore)
 }
 
 private fun defaultAuthUserStore(

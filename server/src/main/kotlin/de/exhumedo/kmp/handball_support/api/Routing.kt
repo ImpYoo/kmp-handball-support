@@ -1,12 +1,10 @@
 package de.exhumedo.kmp.handball_support.api
-import de.exhumedo.kmp.handball_support.Greeting
 import de.exhumedo.kmp.handball_support.application.PerformanceEvaluationApplicationService
 import de.exhumedo.kmp.handball_support.auth.AuthRole
 import de.exhumedo.kmp.handball_support.auth.AuthUserStore
 import de.exhumedo.kmp.handball_support.api.dto.CreatePerformanceEvaluationRequestDto
 import de.exhumedo.kmp.handball_support.api.dto.toCreateCommand
 import de.exhumedo.kmp.handball_support.api.dto.toResponseDto
-import de.exhumedo.kmp.handball_support.domain.rating.model.EvaluatorReference
 import de.exhumedo.kmp.handball_support.domain.rating.repository.PerformanceEvaluationRepository
 import de.exhumedo.kmp.handball_support.security.JwtTokenService
 import de.exhumedo.kmp.handball_support.security.authorize
@@ -25,7 +23,7 @@ fun Application.configureRouting(
     authUserStore: AuthUserStore,
 ) {
     routing {
-        get("/") { call.respond(HttpStatusCode.OK, "Ktor: ${Greeting().greet()}") }
+        get("/") { call.respond(HttpStatusCode.OK, mapOf("name" to "Handball Support API", "version" to "1.0.0")) }
         get("/health") { call.respond(HttpStatusCode.OK, mapOf("status" to "UP")) }
         route("/api/performance-evaluations") {
             post {
@@ -42,9 +40,9 @@ fun Application.configureRouting(
                 val delegateId = call.request.queryParameters["delegateId"]
                 when {
                     gameId != null -> call.respond(HttpStatusCode.OK, repository.findByGameId(gameId).map { it.toResponseDto() })
-                    r1 != null && r2 != null -> call.respond(HttpStatusCode.OK, repository.findByEvaluatorReference(EvaluatorReference.RefereeTeam(r1,r2)).map { it.toResponseDto() })
+                    r1 != null && r2 != null -> call.respond(HttpStatusCode.OK, repository.findByRefereeTeam(r1, r2).map { it.toResponseDto() })
                     r1 != null || r2 != null -> call.respondProblem(HttpStatusCode.BadRequest,"Invalid Request","Both firstRefereeId and secondRefereeId are required together.")
-                    delegateId != null -> call.respond(HttpStatusCode.OK, repository.findByEvaluatorReference(EvaluatorReference.Delegate(delegateId)).map { it.toResponseDto() })
+                    delegateId != null -> call.respond(HttpStatusCode.OK, repository.findByDelegate(delegateId).map { it.toResponseDto() })
                     else -> call.respond(HttpStatusCode.OK, repository.findAll().map { it.toResponseDto() })
                 }
             }

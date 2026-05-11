@@ -22,6 +22,8 @@ data class AppConfig(
     val bootstrapAdmin: BootstrapAdmin?,
     val http: HttpConfig,
     val externalApi: ExternalApiConfig = ExternalApiConfig(),
+    /** TCP port the embedded Netty server binds to. Configurable via SERVER_PORT env var (default 8080). */
+    val serverPort: Int = 8080,
 )
 
 /**
@@ -217,6 +219,11 @@ object AppConfigLoader {
                     dotEnv = dotEnv,
                 )?.toLongOrNull() ?: 3_000L,
             ),
+            serverPort = resolveConfigValue(
+                envKey = "SERVER_PORT",
+                systemPropertyKey = "server.port",
+                dotEnv = dotEnv,
+            )?.toIntOrNull() ?: 8080,
         )
 
         validate(config)
@@ -308,6 +315,7 @@ object AppConfigLoader {
     }
 
     private fun validate(config: AppConfig) {
+        require(config.serverPort in 1..65535) { "SERVER_PORT must be between 1 and 65535." }
         require(config.jwt.issuer.isNotBlank()) { "JWT issuer must not be blank." }
         require(config.jwt.audience.isNotBlank()) { "JWT audience must not be blank." }
         require(config.jwt.realm.isNotBlank()) { "JWT realm must not be blank." }
