@@ -11,8 +11,10 @@ import de.exhumedo.kmp.handball_support.domain.rating.model.RoleAssignment
 import de.exhumedo.kmp.handball_support.domain.rating.model.Score
 import de.exhumedo.kmp.handball_support.domain.rating.model.TableOfficialTeam
 import de.exhumedo.kmp.handball_support.domain.rating.repository.PerformanceEvaluationRepository
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -20,6 +22,7 @@ class JsonFilePerformanceEvaluationRepository(private val storagePath: Path) : P
 
     private val lock = Any()
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true; encodeDefaults = true }
+    private val log = LoggerFactory.getLogger(JsonFilePerformanceEvaluationRepository::class.java)
 
     @Serializable
     private data class StoredPerformanceEvaluation(
@@ -99,7 +102,16 @@ class JsonFilePerformanceEvaluationRepository(private val storagePath: Path) : P
     private fun loadAll(): List<StoredPerformanceEvaluation> {
         val content = Files.readString(storagePath).trim()
         if (content.isEmpty() || content == "null") return emptyList()
-        return json.decodeFromString(content)
+        return try {
+            json.decodeFromString(content)
+        } catch (e: SerializationException) {
+            log.error(
+                "Could not deserialize performance-evaluations file at '{}'. " +
+                    "The file may use an old format. Returning empty list. Cause: {}",
+                storagePath, e.message,
+            )
+            emptyList()
+        }
     }
 
     private fun persist(list: List<StoredPerformanceEvaluation>) {

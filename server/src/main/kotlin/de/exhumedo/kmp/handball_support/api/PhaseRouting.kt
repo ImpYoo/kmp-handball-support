@@ -20,19 +20,18 @@ fun Application.configurePhaseRouting(
 ) {
     routing {
         route("/api/phases") {
-            // Returns only phases that have at least one match within today and the 2 preceding days.
             get {
                 if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) == null) return@get
-                call.respond(HttpStatusCode.OK, matchApplicationService.getPhases().map { it.toResponseDto() })
+                val from = call.request.queryParameters["from"]?.toLongOrNull() ?: 0L
+                call.respond(HttpStatusCode.OK, matchApplicationService.getPhasesFromTimestamp(from).map { it.toResponseDto() })
             }
-            // Returns matches of a phase within the same 3-day window.
             get("/{phaseId}/matches") {
                 if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) == null) return@get
                 val phaseId = call.parameters["phaseId"]?.toIntOrNull()
                     ?: return@get call.respondProblem(HttpStatusCode.BadRequest, "Invalid Request", "phaseId must be an integer")
-                call.respond(HttpStatusCode.OK, matchApplicationService.getMatchesOfPhase(phaseId).map { it.toResponseDto() })
+                val from = call.request.queryParameters["from"]?.toLongOrNull() ?: 0L
+                call.respond(HttpStatusCode.OK, matchApplicationService.getMatchesOfPhaseFromTimestamp(phaseId, from).map { it.toResponseDto() })
             }
-            // Returns a single match by ID (no time filter — match ID is authoritative).
             get("/{phaseId}/matches/{matchId}") {
                 if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) == null) return@get
                 val phaseId = call.parameters["phaseId"]?.toIntOrNull()

@@ -8,36 +8,49 @@ import de.exhumedo.kmp.handball_support.domain.rating.model.Evaluator
 import de.exhumedo.kmp.handball_support.domain.rating.model.EvaluatorType
 import de.exhumedo.kmp.handball_support.domain.rating.repository.PerformanceEvaluationRepository
 import de.exhumedo.kmp.handball_support.domain.repository.VoteByRefereesRepository
+import kotlinx.coroutines.runBlocking
 
 /**
  * Adapts PerformanceEvaluationRepository to implement VoteByRefereesRepository.
  * Used exclusively by EnrichMatchWithVoteStateUseCase to check if a vote exists.
  *
  * ID format:
- *  - Referee team: "{matchId}-{refereeAId}-{refereeBId}" (3 dash-separated segments)
- *  - Delegate:     "{matchId}-{delegateId}"              (2 dash-separated segments)
+ *  - Referee team: "{matchId}-{refereeAId}-{refereeBId}" (3 segments)
+ *  - Delegate:     "{matchId}-{delegateId}"              (2 segments)
+ *
+ * PerformanceEvaluation.game.gameId must equal matching Match.id.toString().
  */
 class PerformanceEvaluationBasedVoteRepository(
     private val evaluationRepository: PerformanceEvaluationRepository,
 ) : VoteByRefereesRepository {
 
-    override fun findById(id: String): VoteByReferees? {
+    override fun findById(id: String): VoteByReferees? = runBlocking {
         val parts = id.split("-")
-        val matchId = parts.getOrNull(0) ?: return null
+        val matchId = parts.getOrNull(0) ?: return@runBlocking null
         val evaluatorType = if (parts.size >= 3) EvaluatorType.REFEREE_TEAM else EvaluatorType.DELEGATE
         val found = evaluationRepository.findByGameId(matchId).any { it.evaluator.type == evaluatorType }
-        return if (found) stubVote(id) else null
+        if (found) stubVote(id) else null
     }
 
-    override fun findAll(): List<VoteByReferees> =
+    override fun findAll(): List<VoteByReferees> = runBlocking {
         evaluationRepository.findAll().map { eval ->
             val matchId = eval.game.gameId
-            val voteId = when (val ev = eval.evaluator) {
-                is Evaluator.RefereeTeam -> "$matchId-${ev.refereePair.firstReferee.person.id}-${ev.refereePair.secondReferee.person.id}"
-                is Evaluator.Delegate    -> "$matchId-${ev.assignment.person.id}"
+            val voteId = when (eval.evaluator.type) {
+                EvaluatorType.REFEREE_TEAM -> {
+                    val pair = eval.evaluator as? Evaluator.RefereeTeam
+                    val r1 = pair?.refereePair?.firstReferee?.person?.id.orEmpty()
+                    val r2 = pair?.refereePair?.secondReferee?.person?.id.orEmpty()
+                    "$matchId-$r1-$r2"
+                }
+                EvaluatorType.DELEGATE -> {
+                    val d = eval.evaluator as? Evaluator.Delegate
+                    val dId = d?.assignment?.person?.id.orEmpty()
+                    "$matchId-$dId"
+                }
             }
             stubVote(voteId)
         }
+    }
 
     override fun save(vote: VoteByReferees): Unit =
         throw UnsupportedOperationException("Use PerformanceEvaluationApplicationService to save votes.")
