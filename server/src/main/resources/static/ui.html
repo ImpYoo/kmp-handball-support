@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Handball Support – API PoC</title>
+  <link rel="stylesheet" href="ui.css" />
+</head>
+<body>
+
+<nav>
+  <h1>Handball API</h1>
+
+  <div class="section-label">General</div>
+  <button class="active" data-panel="panelGeneral">Health &amp; Info</button>
+
+  <div class="section-label">Authentication</div>
+  <button data-panel="panelLogin">Login / Logout</button>
+  <button data-panel="panelMe">My Profile</button>
+
+  <div class="section-label">Admin: Users</div>
+  <button data-panel="panelUsers">List / Get User</button>
+  <button data-panel="panelCreateUser">Create User</button>
+  <button data-panel="panelUpdateUser">Update / Delete</button>
+  <button data-panel="panelRevokeTokens">Revoke Tokens</button>
+
+  <div class="section-label">Phases &amp; Matches</div>
+  <button data-panel="panelPhases">Phases (3-day)</button>
+  <button data-panel="panelMatches">Matches</button>
+  <button data-panel="panelMatch">Single Match</button>
+
+  <div class="section-label">Evaluations</div>
+  <button data-panel="panelEvalList">List / Get Eval</button>
+  <button data-panel="panelEvalCreate">Create Eval</button>
+
+  <div class="section-label">Sportradar (Admin)</div>
+  <button data-panel="panelSrPhases">SR Phases</button>
+  <button data-panel="panelSrPhaseDetail">SR Phase Detail</button>
+  <button data-panel="panelSrMatches">SR Matches</button>
+  <button data-panel="panelSrMatch">SR Single Match</button>
+  <button data-panel="panelSrTournaments">SR Tournaments</button>
+  <button data-panel="panelSrTournament">SR Tournament</button>
+  <button data-panel="panelSrSeasons">SR Seasons</button>
+  <button data-panel="panelSrSeason">SR Season Detail</button>
+  <button data-panel="panelSrRefresh">SR Refresh Cache</button>
+</nav>
+
+<main>
+  <!-- Status bar -->
+  <div id="statusBar">
+    <div class="dot"></div>
+    <span id="statusText">Not logged in</span>
+  </div>
+
+  <!-- ── GENERAL ──────────────────────────────── -->
+  <div id="panelGeneral" class="panel active">
+    <h2>General</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> / — API Info</h3>
+      <button id="btnGetInfo" class="btn btn-primary">Send</button>
+      <div id="rGeneral" class="response"></div>
+    </div>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /health</h3>
+      <button id="btnGetHealth" class="btn btn-primary">Send</button>
+      <div id="rHealth" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── LOGIN / LOGOUT ───────────────────────── -->
+  <div id="panelLogin" class="panel">
+    <h2>Login / Logout</h2>
+    <div class="card">
+      <h3><span class="badge POST">POST</span> /api/auth/token</h3>
+      <div class="form-row">
+        <label class="grow">Username<input id="loginUser" value="admin" /></label>
+        <label class="grow">Password<input id="loginPass" type="password" /></label>
+      </div>
+      <button id="btnLogin" class="btn btn-primary">Login</button>
+      <div id="rLogin" class="response"></div>
+    </div>
+    <div class="card">
+      <h3><span class="badge POST">POST</span> /api/auth/logout</h3>
+      <p class="hint">Revokes all active tokens for the currently logged-in user.</p>
+      <button id="btnLogout" class="btn btn-danger">Logout</button>
+      <div id="rLogout" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── MY PROFILE ───────────────────────────── -->
+  <div id="panelMe" class="panel">
+    <h2>My Profile</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/auth/users/me</h3>
+      <button id="btnGetMe" class="btn btn-primary">Send</button>
+      <div id="rMe" class="response"></div>
+    </div>
+    <div class="card">
+      <h3><span class="badge POST">POST</span> /api/auth/users/me/change-password</h3>
+      <div class="form-row">
+        <label class="grow">Current password<input id="cpCurrent" type="password" /></label>
+        <label class="grow">New password<input id="cpNew" type="password" /></label>
+      </div>
+      <button id="btnChangePass" class="btn btn-primary">Change Password</button>
+      <div id="rChangePass" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── LIST / GET USER ──────────────────────── -->
+  <div id="panelUsers" class="panel">
+    <h2>List / Get User</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/auth/users</h3>
+      <button id="btnUserList" class="btn btn-primary">List All</button>
+      <div id="rUserList" class="response"></div>
+    </div>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/auth/users/{username}</h3>
+      <div class="form-row">
+        <label class="grow">Username<input id="getUserName" placeholder="admin" /></label>
+      </div>
+      <button id="btnGetUser" class="btn btn-primary">Get User</button>
+      <div id="rGetUser" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── CREATE USER ──────────────────────────── -->
+  <div id="panelCreateUser" class="panel">
+    <h2>Create User</h2>
+    <div class="card">
+      <h3><span class="badge POST">POST</span> /api/auth/users</h3>
+      <div class="form-row">
+        <label class="grow">Username<input id="cuUser" /></label>
+        <label class="grow">Password<input id="cuPass" type="password" /></label>
+      </div>
+      <div class="form-row">
+        <label>Role
+          <select id="cuRole">
+            <option>ADMIN</option><option selected>REFEREE</option><option>VIEWER</option>
+          </select>
+        </label>
+        <label>Enabled
+          <select id="cuEnabled">
+            <option value="true" selected>true</option>
+            <option value="false">false</option>
+          </select>
+        </label>
+      </div>
+      <button id="btnCreateUser" class="btn btn-primary">Create</button>
+      <div id="rCreateUser" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── UPDATE / DELETE USER ─────────────────── -->
+  <div id="panelUpdateUser" class="panel">
+    <h2>Update / Delete User</h2>
+    <div class="card">
+      <h3><span class="badge PUT">PUT</span> /api/auth/users/{username}</h3>
+      <div class="form-row">
+        <label class="grow">Username<input id="uuUser" /></label>
+        <label class="grow">New password (optional)<input id="uuPass" type="password" /></label>
+      </div>
+      <div class="form-row">
+        <label>Role (optional)
+          <select id="uuRole">
+            <option value="">— unchanged —</option>
+            <option>ADMIN</option><option>REFEREE</option><option>VIEWER</option>
+          </select>
+        </label>
+        <label>Enabled (optional)
+          <select id="uuEnabled">
+            <option value="">— unchanged —</option>
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </label>
+      </div>
+      <button id="btnUpdateUser" class="btn btn-primary">Update</button>
+      <div id="rUpdateUser" class="response"></div>
+    </div>
+    <div class="card">
+      <h3><span class="badge DELETE">DELETE</span> /api/auth/users/{username}</h3>
+      <div class="form-row">
+        <label class="grow">Username<input id="delUser" /></label>
+      </div>
+      <button id="btnDeleteUser" class="btn btn-danger">Delete</button>
+      <div id="rDeleteUser" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── REVOKE TOKENS ────────────────────────── -->
+  <div id="panelRevokeTokens" class="panel">
+    <h2>Revoke Tokens</h2>
+    <div class="card">
+      <h3><span class="badge POST">POST</span> /api/auth/users/{username}/revoke-tokens</h3>
+      <div class="form-row">
+        <label class="grow">Username<input id="rtUser" /></label>
+      </div>
+      <button id="btnRevokeTokens" class="btn btn-danger">Revoke</button>
+      <div id="rRevokeTokens" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── PHASES ────────────────────────────────── -->
+  <div id="panelPhases" class="panel">
+    <h2>Phases (3-day window)</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/phases</h3>
+      <p class="hint">Returns phases with matches today, yesterday and day before yesterday.</p>
+      <button id="btnPhases" class="btn btn-primary">Send</button>
+      <div id="rPhases" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── MATCHES ───────────────────────────────── -->
+  <div id="panelMatches" class="panel">
+    <h2>Matches of Phase</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/phases/{phaseId}/matches</h3>
+      <div class="form-row">
+        <label class="grow">Phase ID<input id="mPhaseId" type="number" placeholder="1" /></label>
+      </div>
+      <button id="btnMatches" class="btn btn-primary">Send</button>
+      <div id="rMatches" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── SINGLE MATCH ──────────────────────────── -->
+  <div id="panelMatch" class="panel">
+    <h2>Single Match</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/phases/{phaseId}/matches/{matchId}</h3>
+      <div class="form-row">
+        <label class="grow">Phase ID<input id="smPhaseId" type="number" placeholder="1" /></label>
+        <label class="grow">Match ID<input id="smMatchId" type="number" placeholder="1" /></label>
+      </div>
+      <button id="btnSingleMatch" class="btn btn-primary">Send</button>
+      <div id="rSingleMatch" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── EVAL LIST / GET ───────────────────────── -->
+  <div id="panelEvalList" class="panel">
+    <h2>Performance Evaluations – Query</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/performance-evaluations</h3>
+      <p class="hint">All filters are optional. If none supplied, all records are returned.</p>
+      <div class="form-row">
+        <label class="grow">gameId<input id="fGameId" placeholder="G-001" /></label>
+        <label class="grow">firstRefereeId<input id="fR1" /></label>
+        <label class="grow">secondRefereeId<input id="fR2" /></label>
+        <label class="grow">delegateId<input id="fDelegate" /></label>
+      </div>
+      <button id="btnEvalList" class="btn btn-primary">Send</button>
+      <div id="rEvalList" class="response"></div>
+    </div>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/performance-evaluations/{id}</h3>
+      <div class="form-row">
+        <label class="grow">Evaluation ID<input id="evalId" /></label>
+      </div>
+      <button id="btnGetEval" class="btn btn-primary">Send</button>
+      <div id="rGetEval" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── SPORTRADAR: PHASES ──────────────────────────────── -->
+  <div id="panelSrPhases" class="panel">
+    <h2>Sportradar – Phase Summaries</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/sportradar/phases</h3>
+      <p class="hint">
+        <b>ADMIN only.</b> Fetches all phases directly from Sportradar (bypassing the domain layer)
+        and returns a summary per phase: name, matchDayCount, matchCount.<br>
+        Returns <b>503</b> when <code>EXTERNAL_API_ENABLED=false</code>, <b>502</b> on upstream failure.
+      </p>
+      <button id="btnSrPhases" class="btn btn-primary">Send</button>
+      <div id="rSrPhases" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── SPORTRADAR: PHASE DETAIL ─────────────────────────── -->
+  <div id="panelSrPhaseDetail" class="panel">
+    <h2>Sportradar – Phase Detail</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/sportradar/phases/{phaseId}</h3>
+      <p class="hint">
+        <b>ADMIN only.</b> Returns the full phase including all match days and every match with
+        referee A/B, timekeeper, scorekeeper and delegate.
+      </p>
+      <div class="form-row">
+        <label class="grow">Phase ID<input id="srPhaseDetailId" type="number" placeholder="1" /></label>
+      </div>
+      <button id="btnSrPhaseDetail" class="btn btn-primary">Send</button>
+      <div id="rSrPhaseDetail" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── SPORTRADAR: PHASE MATCHES ────────────────────────── -->
+  <div id="panelSrMatches" class="panel">
+    <h2>Sportradar – Phase Matches</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/sportradar/phases/{phaseId}/matches</h3>
+      <p class="hint">
+        <b>ADMIN only.</b> Flat list of all matches in the phase.
+        Each match includes timestamp, teams, result, halftime result and all officials
+        (refereeA, refereeB, timekeeper, scorekeeper, delegate).
+      </p>
+      <div class="form-row">
+        <label class="grow">Phase ID<input id="srMatchPhaseId" type="number" placeholder="1" /></label>
+      </div>
+      <button id="btnSrMatches" class="btn btn-primary">Send</button>
+      <div id="rSrMatches" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── SPORTRADAR: SINGLE MATCH ─────────────────────────── -->
+  <div id="panelSrMatch" class="panel">
+    <h2>Sportradar – Single Match</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/sportradar/phases/{phaseId}/matches/{matchId}</h3>
+      <p class="hint">
+        <b>ADMIN only.</b> Returns a single match with timestamp, teams, result,
+        halftime result and all officials (refereeA, refereeB, timekeeper, scorekeeper, delegate).
+      </p>
+      <div class="form-row">
+        <label class="grow">Phase ID<input id="srSinglePhaseId" type="number" placeholder="1" /></label>
+        <label class="grow">Match ID<input id="srSingleMatchId" type="number" placeholder="1" /></label>
+      </div>
+      <button id="btnSrMatch" class="btn btn-primary">Send</button>
+      <div id="rSrMatch" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── SPORTRADAR: TOURNAMENTS ──────────────────────────── -->
+  <div id="panelSrTournaments" class="panel">
+    <h2>Sportradar – Tournaments</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/sportradar/tournaments</h3>
+      <p class="hint"><b>ADMIN only.</b> Lists tournaments from the live Sportradar tournaments feed.</p>
+      <button id="btnSrTournaments" class="btn btn-primary">Send</button>
+      <div id="rSrTournaments" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── SPORTRADAR: SINGLE TOURNAMENT ─────────────────────── -->
+  <div id="panelSrTournament" class="panel">
+    <h2>Sportradar – Tournament</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/sportradar/tournaments/{tournamentId}</h3>
+      <p class="hint"><b>ADMIN only.</b> Returns a single tournament with all seasons from the live tournaments feed.</p>
+      <div class="form-row">
+        <label class="grow">Tournament ID<input id="srTournamentId" type="number" placeholder="16059" /></label>
+      </div>
+      <button id="btnSrTournament" class="btn btn-primary">Send</button>
+      <div id="rSrTournament" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── SPORTRADAR: SEASONS ───────────────────────────────── -->
+  <div id="panelSrSeasons" class="panel">
+    <h2>Sportradar – Seasons</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/sportradar/tournaments/{tournamentId}/seasons</h3>
+      <p class="hint"><b>ADMIN only.</b> Lists all seasons for the given tournament from the live tournaments feed.</p>
+      <div class="form-row">
+        <label class="grow">Tournament ID<input id="srSeasonsTournamentId" type="number" placeholder="16059" /></label>
+      </div>
+      <button id="btnSrSeasons" class="btn btn-primary">Send</button>
+      <div id="rSrSeasons" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── SPORTRADAR: SEASON DETAIL ─────────────────────────── -->
+  <div id="panelSrSeason" class="panel">
+    <h2>Sportradar – Season Detail</h2>
+    <div class="card">
+      <h3><span class="badge GET">GET</span> /api/sportradar/tournaments/{tournamentId}/seasons/{seasonId}</h3>
+      <p class="hint"><b>ADMIN only.</b> Fetches live phases from Sportradar for this season and returns
+        a full season detail (label, isHbl, phase summaries with match counts).</p>
+      <div class="form-row">
+        <label class="grow">Tournament ID<input id="srSeasonTournamentId" type="number" placeholder="16059" /></label>
+        <label class="grow">Season ID<input id="srSeasonId" type="number" placeholder="1705" /></label>
+      </div>
+      <button id="btnSrSeason" class="btn btn-primary">Send</button>
+      <div id="rSrSeason" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── SPORTRADAR: REFRESH CACHE ─────────────────────────── -->
+  <div id="panelSrRefresh" class="panel">
+    <h2>Sportradar - Refresh Cache</h2>
+    <div class="card">
+      <h3><span class="badge POST">POST</span> /api/sportradar/refresh</h3>
+      <p class="hint"><b>ADMIN only.</b> Clears tournament/fixtures caches and reloads live data from Sportradar.</p>
+      <button id="btnSrRefresh" class="btn btn-danger">Refresh Now</button>
+      <div id="rSrRefresh" class="response"></div>
+    </div>
+  </div>
+
+  <!-- ── CREATE EVAL ───────────────────────────── -->
+  <div id="panelEvalCreate" class="panel">
+    <h2>Create Performance Evaluation</h2>
+    <div class="card">
+      <h3><span class="badge POST">POST</span> /api/performance-evaluations</h3>
+      <p class="hint">evaluator.type: <b>REFEREE_TEAM</b> (needs refereePair) or <b>DELEGATE</b> (needs delegate).<br>
+        Scores: 1–10. Roles: FIRST_REFEREE, SECOND_REFEREE, TIME_KEEPER, SCORE_KEEPER, DELEGATE.</p>
+      <label class="full">Request body (JSON)
+        <textarea id="evalBody" rows="22">{
+  "game": {
+    "gameId": "G-001",
+    "date": "2026-05-12",
+    "homeTeam": "Team A",
+    "awayTeam": "Team B",
+    "venue": "Sports Hall 1"
+  },
+  "evaluator": {
+    "type": "REFEREE_TEAM",
+    "refereePair": {
+      "firstReferee": {
+        "person": { "id": "R1", "firstName": "John", "lastName": "Doe" },
+        "role": "FIRST_REFEREE"
+      },
+      "secondReferee": {
+        "person": { "id": "R2", "firstName": "Jane", "lastName": "Smith" },
+        "role": "SECOND_REFEREE"
+      }
+    }
+  },
+  "tableOfficialTeam": {
+    "timeKeeper": {
+      "person": { "id": "T1", "firstName": "Tim", "lastName": "Keeper" },
+      "role": "TIME_KEEPER"
+    },
+    "scoreKeeper": {
+      "person": { "id": "S1", "firstName": "Sara", "lastName": "Score" },
+      "role": "SCORE_KEEPER"
+    }
+  },
+  "score": { "appearance": 8, "influence": 7, "teamwork": 9 },
+  "comment": "Good performance overall."
+}</textarea>
+      </label>
+      <button id="btnCreateEval" class="btn btn-primary">Create</button>
+      <div id="rCreateEval" class="response"></div>
+    </div>
+  </div>
+</main>
+
+<script src="ui.js"></script>
+</body>
+</html>
+

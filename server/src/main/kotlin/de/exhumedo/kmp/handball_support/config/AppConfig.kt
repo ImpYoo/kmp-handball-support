@@ -74,6 +74,11 @@ data class ExternalApiConfig(
     val apiKeyQueryParamName: String = "api_key",
     val requestTimeoutMillis: Long = 5_000L,
     val connectTimeoutMillis: Long = 3_000L,
+    /**
+     * Path to a JSON file containing a list of [de.exhumedo.kmp.handball_support.sportradar.config.TournamentConfig].
+     * Required when [enabled] = true. Example: "server/data/tournaments.json"
+     */
+    val tournamentsFile: String = "server/data/tournaments.json",
 )
 
 object AppConfigLoader {
@@ -218,6 +223,11 @@ object AppConfigLoader {
                     systemPropertyKey = "external.api.connect-timeout-ms",
                     dotEnv = dotEnv,
                 )?.toLongOrNull() ?: 3_000L,
+                tournamentsFile = resolveConfigValue(
+                    envKey = "EXTERNAL_API_TOURNAMENTS_FILE",
+                    systemPropertyKey = "external.api.tournaments-file",
+                    dotEnv = dotEnv,
+                ) ?: "server/data/tournaments.json",
             ),
             serverPort = resolveConfigValue(
                 envKey = "SERVER_PORT",
@@ -345,6 +355,16 @@ object AppConfigLoader {
                     config.externalApi.baseUrl.startsWith("https://"),
             ) {
                 "EXTERNAL_API_BASE_URL must start with http:// or https://."
+            }
+            require(config.externalApi.tournamentsFile.isNotBlank()) {
+                "EXTERNAL_API_TOURNAMENTS_FILE is required when EXTERNAL_API_ENABLED=true."
+            }
+            val apiKey = config.externalApi.apiKey?.trim().orEmpty()
+            require(apiKey.isNotBlank()) {
+                "EXTERNAL_API_KEY is required when EXTERNAL_API_ENABLED=true."
+            }
+            require(apiKey !in setOf("YOUR_API_KEY_HERE", "changeme", "change-me", "replace-me")) {
+                "EXTERNAL_API_KEY appears to be a placeholder; provide a real API key."
             }
         }
 

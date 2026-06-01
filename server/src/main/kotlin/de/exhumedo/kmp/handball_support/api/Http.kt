@@ -23,7 +23,10 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
+
+private val httpLog = LoggerFactory.getLogger("de.exhumedo.kmp.handball_support.api.Http")
 
 /**
  * Configures JSON serialization and problem-style error handling.
@@ -163,10 +166,13 @@ fun Application.configureHttp(appConfig: AppConfig) {
             )
         }
         exception<Throwable> { call, cause ->
+            // Log with full detail server-side; return a generic message to the caller
+            // so internal stack traces, file paths, and config values are never exposed.
+            httpLog.error("Unhandled exception on {} {}", call.request.httpMethod.value, call.request.path(), cause)
             call.respondProblem(
                 status = HttpStatusCode.InternalServerError,
                 title = "Internal Server Error",
-                detail = cause.message ?: "An unexpected error occurred.",
+                detail = "An unexpected error occurred. Please contact support if the problem persists.",
             )
         }
     }

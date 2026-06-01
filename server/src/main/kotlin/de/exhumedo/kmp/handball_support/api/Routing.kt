@@ -10,8 +10,10 @@ import de.exhumedo.kmp.handball_support.security.JwtTokenService
 import de.exhumedo.kmp.handball_support.security.authorize
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
+import io.ktor.server.http.content.staticResources
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
@@ -23,6 +25,10 @@ fun Application.configureRouting(
     authUserStore: AuthUserStore,
 ) {
     routing {
+        // ── PoC UI ─────────────────────────────────────────────────────────────
+        get("/ui") { call.respondRedirect("/ui/ui.html", permanent = false) }
+        staticResources("/ui", "static")
+
         get("/") { call.respond(HttpStatusCode.OK, mapOf("name" to "Handball Support API", "version" to "1.0.0")) }
         get("/health") {
             try {

@@ -12,6 +12,8 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 fun Application.configurePhaseRouting(
     matchApplicationService: MatchApplicationService,
@@ -20,25 +22,31 @@ fun Application.configurePhaseRouting(
 ) {
     routing {
         route("/api/phases") {
+
+            // Returns phases with matches in the server-computed 3-day window.
+            // Uses withContext(Dispatchers.IO) to prevent blocking Ktor's coroutine dispatcher
+            // while the repository performs a (potentially blocking) Sportradar HTTP call.
             get {
                 if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) == null) return@get
-                val from = call.request.queryParameters["from"]?.toLongOrNull() ?: 0L
-                call.respond(HttpStatusCode.OK, matchApplicationService.getPhasesFromTimestamp(from).map { it.toResponseDto() })
+                val phases = withContext(Dispatchers.IO) { matchApplicationService.getPhases() }
+                call.respond(HttpStatusCode.OK, phases.map { it.toResponseDto() })
             }
+
             get("/{phaseId}/matches") {
                 if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) == null) return@get
                 val phaseId = call.parameters["phaseId"]?.toIntOrNull()
                     ?: return@get call.respondProblem(HttpStatusCode.BadRequest, "Invalid Request", "phaseId must be an integer")
-                val from = call.request.queryParameters["from"]?.toLongOrNull() ?: 0L
-                call.respond(HttpStatusCode.OK, matchApplicationService.getMatchesOfPhaseFromTimestamp(phaseId, from).map { it.toResponseDto() })
+                val matches = withContext(Dispatchers.IO) { matchApplicationService.getMatchesOfPhase(phaseId) }
+                call.respond(HttpStatusCode.OK, matches.map { it.toResponseDto() })
             }
+
             get("/{phaseId}/matches/{matchId}") {
                 if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) == null) return@get
                 val phaseId = call.parameters["phaseId"]?.toIntOrNull()
                     ?: return@get call.respondProblem(HttpStatusCode.BadRequest, "Invalid Request", "phaseId must be an integer")
                 val matchId = call.parameters["matchId"]?.toIntOrNull()
                     ?: return@get call.respondProblem(HttpStatusCode.BadRequest, "Invalid Request", "matchId must be an integer")
-                val match = matchApplicationService.getMatch(phaseId, matchId)
+                val match = withContext(Dispatchers.IO) { matchApplicationService.getMatch(phaseId, matchId) }
                 if (match == null) call.respondProblem(HttpStatusCode.NotFound, "Not Found", "Match not found")
                 else call.respond(HttpStatusCode.OK, match.toResponseDto())
             }
