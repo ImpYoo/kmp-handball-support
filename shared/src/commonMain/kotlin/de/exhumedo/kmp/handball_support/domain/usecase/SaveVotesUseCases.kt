@@ -3,6 +3,7 @@ package de.exhumedo.kmp.handball_support.domain.usecase
 import de.exhumedo.kmp.handball_support.domain.model.CommentTooLongError
 import de.exhumedo.kmp.handball_support.domain.model.DomainResult
 import de.exhumedo.kmp.handball_support.domain.model.ForbiddenVoterError
+import de.exhumedo.kmp.handball_support.domain.model.IncompleteMatchOfficialsError
 import de.exhumedo.kmp.handball_support.domain.model.InvalidRatingError
 import de.exhumedo.kmp.handball_support.domain.model.Match
 import de.exhumedo.kmp.handball_support.domain.model.MissingDelegateError
@@ -60,6 +61,15 @@ class SaveVoteByRefereesUseCase(
         // --- comment length ---
         if (input.comment.length > MAX_COMMENT_LENGTH) return DomainResult.Failure(CommentTooLongError)
 
+        // --- required officials must be known to record a vote ---
+        val refereeA = match.refereeA
+        val refereeB = match.refereeB
+        val timekeeper = match.timekeeper
+        val scorekeeper = match.scorekeeper
+        if (refereeA == null || refereeB == null || timekeeper == null || scorekeeper == null) {
+            return DomainResult.Failure(IncompleteMatchOfficialsError)
+        }
+
         // --- actor / authorization ---
         val isDelegateVote: Boolean
         val voteId: String
@@ -67,10 +77,10 @@ class SaveVoteByRefereesUseCase(
         when (val actor = input.actor) {
             is VoteActor.RefereeTeam -> {
                 val isKnownReferee =
-                    actor.voterId == match.refereeA.id || actor.voterId == match.refereeB.id
+                    actor.voterId == refereeA.id || actor.voterId == refereeB.id
                 if (!isKnownReferee) return DomainResult.Failure(ForbiddenVoterError)
                 isDelegateVote = false
-                voteId = VoteByReferees.refereeVoteId(match.id, match.refereeA.id, match.refereeB.id)
+                voteId = VoteByReferees.refereeVoteId(match.id, refereeA.id, refereeB.id)
             }
 
             is VoteActor.Delegate -> {
@@ -94,11 +104,11 @@ class SaveVoteByRefereesUseCase(
             timestamp = match.timestamp,
             homeTeam = match.homeTeam,
             awayTeam = match.awayTeam,
-            refereeA = match.refereeA,
-            refereeB = match.refereeB,
+            refereeA = refereeA,
+            refereeB = refereeB,
             delegate = match.delegate,
-            timekeeper = match.timekeeper,
-            scorekeeper = match.scorekeeper,
+            timekeeper = timekeeper,
+            scorekeeper = scorekeeper,
             isVoteByDelegate = isDelegateVote,
             appearanceRating = input.appearanceRating,
             influenceRating = input.influenceRating,

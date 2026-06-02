@@ -21,7 +21,9 @@ class EnrichMatchWithVoteStateUseCase(
     }
 
     private fun hasRefereeVote(match: Match): Boolean {
-        val id = VoteByReferees.refereeVoteId(match.id, match.refereeA.id, match.refereeB.id)
+        val refereeA = match.refereeA ?: return false
+        val refereeB = match.refereeB ?: return false
+        val id = VoteByReferees.refereeVoteId(match.id, refereeA.id, refereeB.id)
         return voteByRefereesRepository.findById(id) != null
     }
 

@@ -40,3 +40,8 @@ data object MissingDelegateError : DomainError {
     override val message: String = "match has no delegate assigned; delegate vote is not allowed"
 }
 
+data object IncompleteMatchOfficialsError : DomainError {
+    override val code: String = "INCOMPLETE_MATCH_OFFICIALS"
+    override val message: String = "match is missing one or more required officials; voting is not allowed"
+}
+
