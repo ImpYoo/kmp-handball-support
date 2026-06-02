@@ -114,6 +114,25 @@ API contract and deployment notes:
 - OpenAPI contract: [docs/openapi.yaml](./docs/openapi.yaml)
 - Public deployment checklist: [docs/public-deployment-checklist.md](./docs/public-deployment-checklist.md)
 
+### Production checklist (server)
+
+Before exposing the server to the public internet, make sure that:
+
+- `JWT_SECRET` is set to a strong, randomly generated value (e.g. `openssl rand -hex 64`).
+  In non-development mode the server refuses to start without it.
+- `AUTH_BOOTSTRAP_ADMIN_PASSWORD` is a strong password and is rotated/disabled after the
+  first successful start (delete the env var; the bootstrap is only used when the auth
+  user file is empty).
+- `CORS_ALLOWED_ORIGINS` only lists the public hosts of your frontend(s).
+- `EXTERNAL_API_KEY` is the real Sportradar key. The server refuses to start with a
+  placeholder value (e.g. `YOUR_API_KEY_HERE`) when `EXTERNAL_API_ENABLED=true`.
+- The `server/data/*.json` files are stored on persistent, backed-up storage with
+  appropriate file-system permissions (the JWT-protected stores contain hashed
+  passwords and audit-relevant data).
+- The server is fronted by HTTPS-terminating infrastructure (e.g. a reverse proxy);
+  the embedded Netty server serves plain HTTP only.
+
+
 ### Build and Run Web Application
 
 To build and run the development version of the web app, use the run configuration from the run widget

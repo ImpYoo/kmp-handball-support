@@ -12,6 +12,22 @@ This service is close to public exposure readiness for a single-node deployment,
 - Persist `server/data/auth-users.json` and `server/data/performance-evaluations.json` on durable volumes if JSON persistence is still used.
 - Back up both JSON files and test restore procedures.
 
+## Client API base URL injection
+
+The Compose Multiplatform client reads its API base URL per target:
+
+- **Web**: `<meta name="api-base-url" content="https://api.example.com">` in `index.html` (set at deploy time). Falls back to the page origin when empty.
+- **Android**: Gradle property `apiBaseUrl` or env `API_BASE_URL` baked into `BuildConfig.API_BASE_URL`. Defaults to `http://10.0.2.2:8080` for the emulator.
+- **iOS**: `Info.plist` key `ApiBaseUrl`, populated from `Configuration/Config.xcconfig`.
+- **Desktop JVM**: env `API_BASE_URL` or system property `api.base.url`.
+
+Verify in release builds that `localhost` is **not** the value being served.
+
+## Client-side authentication
+
+- Tokens are persisted to browser `localStorage` on web. Android/iOS/JVM currently use an in-memory placeholder; replace `TokenStorage.<target>.kt` with Keystore / Keychain / OS-keyring backed implementations before shipping those builds.
+- The client clears its persisted token and routes the user back to login on any HTTP 401 response.
+
 ## Current architecture caveats
 
 - Login throttling is in-memory, so it only protects a single node.
