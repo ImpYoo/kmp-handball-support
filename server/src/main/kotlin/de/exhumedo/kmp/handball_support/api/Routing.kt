@@ -40,7 +40,6 @@ fun Application.configureRouting(
         }
         route("/api/performance-evaluations") {
             post {
-                if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE) == null) return@post
                 val cmd = call.receive<CreatePerformanceEvaluationRequestDto>().toCreateCommand()
                 val saved = applicationService.create(cmd.game, cmd.evaluator, cmd.tableOfficialTeam, cmd.score, cmd.comment)
                 call.respond(HttpStatusCode.Created, saved.toResponseDto())

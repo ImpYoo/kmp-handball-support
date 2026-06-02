@@ -24,19 +24,28 @@ fun Application.configurePhaseRouting(
         route("/api/phases") {
 
             // Returns phases with matches in the server-computed 3-day window.
+            // No authentication required - users can browse phases freely.
             // Uses withContext(Dispatchers.IO) to prevent blocking Ktor's coroutine dispatcher
             // while the repository performs a (potentially blocking) Sportradar HTTP call.
             get {
-                if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) == null) return@get
-                val phases = withContext(Dispatchers.IO) { matchApplicationService.getPhases() }
+                val day = call.request.queryParameters["day"]?.toIntOrNull()
+                val month = call.request.queryParameters["month"]?.toIntOrNull()
+                val year = call.request.queryParameters["year"]?.toIntOrNull()
+                val phases = withContext(Dispatchers.IO) {
+                    matchApplicationService.getPhases(day = day, month = month, year = year)
+                }
                 call.respond(HttpStatusCode.OK, phases.map { it.toResponseDto() })
             }
 
             get("/{phaseId}/matches") {
-                if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) == null) return@get
                 val phaseId = call.parameters["phaseId"]?.toIntOrNull()
                     ?: return@get call.respondProblem(HttpStatusCode.BadRequest, "Invalid Request", "phaseId must be an integer")
-                val matches = withContext(Dispatchers.IO) { matchApplicationService.getMatchesOfPhase(phaseId) }
+                val day = call.request.queryParameters["day"]?.toIntOrNull()
+                val month = call.request.queryParameters["month"]?.toIntOrNull()
+                val year = call.request.queryParameters["year"]?.toIntOrNull()
+                val matches = withContext(Dispatchers.IO) {
+                    matchApplicationService.getMatchesOfPhase(phaseId = phaseId, day = day, month = month, year = year)
+                }
                 call.respond(HttpStatusCode.OK, matches.map { it.toResponseDto() })
             }
 

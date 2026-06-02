@@ -15,11 +15,11 @@ import de.exhumedo.kmp.handball_support.sportradar.model.MatchDay as SrMatchDay
 import de.exhumedo.kmp.handball_support.sportradar.model.Phase as SrPhase
 
 /**
- * Adapts [SportradarPhaseRepository] (async Sportradar model) to the synchronous
- * domain [PhaseRepository] interface consumed by MatchApplicationService.
+ * Adapts [SportradarPhaseRepository] to the synchronous domain [PhaseRepository].
  *
- * Matches missing required officials (refereeA/B, timekeeper, scorekeeper)
- * are skipped with WARN. A Sportradar fetch failure returns empty list (server stays UP).
+ * Officials (refereeA/B, timekeeper, scorekeeper, delegate) may be missing in the upstream feed;
+ * they are surfaced as `null` to the API layer and only the vote-submission use cases reject
+ * matches with incomplete officials. A Sportradar fetch failure returns an empty list.
  */
 class SportradarPhaseRepositoryAdapter(
     private val sportradarRepository: SportradarPhaseRepository,
@@ -49,25 +49,10 @@ class SportradarPhaseRepositoryAdapter(
         )
 
     private fun SrMatchDay.toDomain(phaseId: Int): MatchDay =
-        MatchDay(id = id, matches = matches.mapNotNull { it.toDomain(phaseId) })
+        MatchDay(id = id, matches = matches.map { it.toDomain(phaseId) })
 
-    private fun SrMatch.toDomain(phaseId: Int): Match? {
-        val rA = refereeA
-        val rB = refereeB
-        val tk = timekeeper
-        val sk = scorekeeper
-        if (rA == null || rB == null || tk == null || sk == null) {
-            log.warn(
-                "Skipping match id={} phaseId={}: missing rA={} rB={} tk={} sk={}",
-                id, phaseId,
-                if (rA == null) "MISSING" else "ok",
-                if (rB == null) "MISSING" else "ok",
-                if (tk == null) "MISSING" else "ok",
-                if (sk == null) "MISSING" else "ok",
-            )
-            return null
-        }
-        return Match(
+    private fun SrMatch.toDomain(phaseId: Int): Match =
+        Match(
             id             = id,
             tournamentId   = tournamentId,
             seasonId       = seasonId,
@@ -75,13 +60,12 @@ class SportradarPhaseRepositoryAdapter(
             timestamp      = timestamp,
             homeTeam       = Team(homeTeam.id, homeTeam.name),
             awayTeam       = Team(awayTeam.id, awayTeam.name),
-            refereeA       = Person(rA.id, rA.name),
-            refereeB       = Person(rB.id, rB.name),
-            timekeeper     = Person(tk.id, tk.name),
-            scorekeeper    = Person(sk.id, sk.name),
+            refereeA       = refereeA?.let { Person(it.id, it.name) },
+            refereeB       = refereeB?.let { Person(it.id, it.name) },
+            timekeeper     = timekeeper?.let { Person(it.id, it.name) },
+            scorekeeper    = scorekeeper?.let { Person(it.id, it.name) },
             delegate       = delegate?.let { Person(it.id, it.name) },
             result         = result,
             halftimeResult = halftimeResult,
         )
-    }
 }

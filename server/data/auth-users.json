@@ -5,6 +5,7 @@
         "role": "admin",
         "enabled": true,
         "createdAt": "2026-04-07T09:51:55.074726Z",
-        "updatedAt": "2026-04-07T09:51:55.074726Z"
+        "updatedAt": "2026-06-01T11:19:41.960580Z",
+        "tokenInvalidBefore": "2026-06-01T11:19:41.960451Z"
     }
 ]

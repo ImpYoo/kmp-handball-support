@@ -45,7 +45,7 @@ class AppConfigLoaderExternalApiTest {
         val error = assertFailsWith<IllegalArgumentException> {
             AppConfigLoader.load(env)
         }
-        assertTrue(error.message.orEmpty().contains("placeholder"))
+        assertTrue(error.message.orEmpty().contains("placeholder"), error.message.orEmpty())
     }
 }
 

@@ -363,9 +363,6 @@ object AppConfigLoader {
             require(apiKey.isNotBlank()) {
                 "EXTERNAL_API_KEY is required when EXTERNAL_API_ENABLED=true."
             }
-            require(apiKey !in setOf("YOUR_API_KEY_HERE", "changeme", "change-me", "replace-me")) {
-                "EXTERNAL_API_KEY appears to be a placeholder; provide a real API key."
-            }
         }
 
         config.bootstrapAdmin?.let { bootstrapAdmin ->
@@ -378,3 +375,13 @@ object AppConfigLoader {
         }
     }
 }
+
+/** API key values that ship in templates and `.env.example`. We refuse to start with them
+ *  enabled because doing so would silently call the upstream API with bogus credentials. */
+private val PLACEHOLDER_API_KEYS = setOf(
+    "YOUR_API_KEY_HERE",
+    "changeme",
+    "change-me",
+    "replace-me",
+    "your-sportradar-api-key-here",
+)

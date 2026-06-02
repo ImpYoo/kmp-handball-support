@@ -99,7 +99,7 @@ class AuthApiTest {
     }
 
     @Test
-    fun rejectsWriteRouteForViewerRole() = testApplication {
+    fun allowsPublicVoteSubmissionWithoutToken() = testApplication {
         application {
             module(
                 appConfig = createTestAppConfig(),
@@ -109,11 +109,8 @@ class AuthApiTest {
             )
         }
 
-        val token = issueToken("viewer", "ViewerPass123!")
-
         val response = client.post("/api/performance-evaluations") {
             header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-            header(HttpHeaders.Authorization, "Bearer $token")
             setBody(
                 """
                 {
@@ -124,14 +121,17 @@ class AuthApiTest {
                     "awayTeam": "SG Flensburg",
                     "venue": "Sparkassen-Arena"
                   },
-                  "refereePair": {
-                    "firstReferee": {
-                      "person": { "id": "R1", "firstName": "Max", "lastName": "Mueller" },
-                      "role": "FIRST_REFEREE"
-                    },
-                    "secondReferee": {
-                      "person": { "id": "R2", "firstName": "Anna", "lastName": "Schmidt" },
-                      "role": "SECOND_REFEREE"
+                  "evaluator": {
+                    "type": "REFEREE_TEAM",
+                    "refereePair": {
+                      "firstReferee": {
+                        "person": { "id": "R1", "firstName": "Max", "lastName": "Mueller" },
+                        "role": "FIRST_REFEREE"
+                      },
+                      "secondReferee": {
+                        "person": { "id": "R2", "firstName": "Anna", "lastName": "Schmidt" },
+                        "role": "SECOND_REFEREE"
+                      }
                     }
                   },
                   "tableOfficialTeam": {
@@ -154,8 +154,8 @@ class AuthApiTest {
             )
         }
 
-        assertEquals(HttpStatusCode.Forbidden, response.status)
-        assertTrue(response.bodyAsText().contains("not allowed"))
+        assertEquals(HttpStatusCode.Created, response.status)
+        assertTrue(response.bodyAsText().contains("G-001"))
     }
 
     @Test
