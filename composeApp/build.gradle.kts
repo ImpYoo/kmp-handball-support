@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
+    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
@@ -44,6 +45,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.ktor.client.okhttp.mpp)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -54,14 +56,27 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.androidx.navigation.compose)
+            implementation(libs.ktor.client.core.mpp)
+            implementation(libs.ktor.client.contentNegotiation.mpp)
+            implementation(libs.ktor.serialization.kotlinxJson.mpp)
+            implementation(libs.kotlinx.serialization.json.mpp)
+            implementation(libs.kotlinx.datetime)
             implementation(projects.shared)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin.mpp)
+        }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.ktor.client.cio.mpp)
+        }
+        webMain.dependencies {
+            implementation(libs.ktor.client.js.mpp)
         }
     }
 }
@@ -76,6 +91,14 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        val apiBaseUrl = (project.findProperty("apiBaseUrl") as? String)
+            ?: System.getenv("API_BASE_URL")
+            ?: "http://10.0.2.2:8080"
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+    }
+    buildFeatures {
+        buildConfig = true
     }
     packaging {
         resources {
