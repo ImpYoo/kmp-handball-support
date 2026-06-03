@@ -155,13 +155,13 @@ fun PhasesScreen(
                     if (presenter.phases.isEmpty()) {
                         Text("No phases available")
                     } else {
-                        presenter.phases.forEachIndexed { index, phase ->
-                            if (index > 0) Spacer(Modifier.height(12.dp))
-                            PhaseCard(
-                                phase = phase,
-                                onOpen = { onAction { presenter.openPhase(phase.phaseId) } },
-                            )
-                        }
+                        PhaseGrid(
+                            phases = presenter.phases,
+                            selectedPhaseId = presenter.selectedPhaseId,
+                            onPhaseClick = { phase ->
+                                onAction { presenter.openPhase(phase.phaseId) }
+                            },
+                        )
                     }
                 }
                 Spacer(Modifier.height(12.dp))
