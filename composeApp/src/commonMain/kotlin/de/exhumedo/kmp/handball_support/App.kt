@@ -10,8 +10,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -23,6 +26,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import de.exhumedo.kmp.handball_support.navigation.bindBrowserNavigation
 import de.exhumedo.kmp.handball_support.navigation.initialDeepLink
+import de.exhumedo.kmp.handball_support.ui.screens.LoadingOverlay
 import de.exhumedo.kmp.handball_support.ui.LoginScreen
 import de.exhumedo.kmp.handball_support.ui.PhaseDetailScreen
 import de.exhumedo.kmp.handball_support.ui.PhasesScreen
@@ -40,6 +44,15 @@ fun App() {
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Show the loading overlay immediately on first composition so the very first
+    // thing users see is the three-dot loader (not a blank page). The overlay's
+    // `minDisplayDuration` keeps it on screen for the configured time even after
+    // we flip this flag back to false.
+    var initialLoading by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        initialLoading = false
+    }
 
     LaunchedEffect(navController) {
         bindBrowserNavigation(navController) { entry ->
@@ -316,6 +329,11 @@ fun App() {
                             )
                         }
                 }
+                // Loading overlay that appears on top of all content
+                LoadingOverlay(
+                    isVisible = initialLoading || presenter.isBusy,
+                    statusMessage = if (initialLoading) "Loading..." else presenter.statusMessage,
+                )
             }
         }
     }

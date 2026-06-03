@@ -1,14 +1,22 @@
 package de.exhumedo.kmp.handball_support.ui
 
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -17,10 +25,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.PI
 import de.exhumedo.kmp.handball_support.client.MatchResponseDto
 
 @Composable
@@ -148,6 +160,63 @@ fun Section(
     }
 }
 
+@Composable
+fun LoadingIndicator(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "loadingIndicatorTransition")
+
+    // Single animation that cycles through 0-1 over 1200ms
+    val progress = infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween<Float>(durationMillis = 1200, delayMillis = 0)
+        ),
+        label = "loadingProgress"
+    ).value
+
+    // Calculate alpha for each dot based on progress
+    fun calculateAlpha(dotIndex: Int): Float {
+        val phaseOffset = (dotIndex * 400f) / 1200f  // Each dot starts 400ms apart
+        val phase = ((progress + phaseOffset) * 1f) % 1f
+
+        return when {
+            phase < 0.25f -> (phase / 0.25f).coerceIn(0f, 1f)           // Fade in 0-0.25
+            phase < 0.5f -> 1f                        // Stay filled 0.25-0.5
+            phase < 0.75f -> (1f - ((phase - 0.5f) / 0.25f)).coerceIn(0f, 1f)  // Fade out 0.5-0.75
+            else -> 0f                                // Stay transparent 0.75-1
+        }
+    }
+
+    Box(
+        modifier = modifier.size(80.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Draw three dots arranged in a circle (120 degrees apart)
+        repeat(3) { index ->
+            val angle = ((index * 120f) * (PI / 180f))
+            val radius = 12.dp
+
+            val offsetX = (radius * cos(angle).toFloat())
+            val offsetY = (radius * sin(angle).toFloat())
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .offset(x = offsetX, y = offsetY)
+                    .size(4.dp)  // radius 2 = diameter 4
+                    .background(
+                        color = color.copy(alpha = calculateAlpha(index)),
+                        shape = CircleShape
+                    ),
+            )
+        }
+    }
+}
+
+
 @Preview
 @Composable
 private fun MatchRowPreviewUnselected() {
@@ -207,4 +276,10 @@ private fun SectionPreview() {
     }
 }
 
-
+@Preview
+@Composable
+private fun LoadingIndicatorPreview() {
+    MaterialTheme {
+        LoadingIndicator()
+    }
+}
