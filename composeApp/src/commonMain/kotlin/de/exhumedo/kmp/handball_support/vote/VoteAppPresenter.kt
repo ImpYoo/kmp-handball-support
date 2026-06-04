@@ -14,6 +14,10 @@ import de.exhumedo.kmp.handball_support.config.AppConfig
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 
 class VoteAppPresenter(
     private val api: VoteApiClient = VoteApiClient(),
@@ -31,9 +35,9 @@ class VoteAppPresenter(
     var selectedMatch by mutableStateOf<MatchResponseDto?>(null)
 
     var evaluatorType by mutableStateOf(VoteEvaluatorType.REFEREE_TEAM)
-    var appearance by mutableStateOf("3")
-    var influence by mutableStateOf("3")
-    var teamwork by mutableStateOf("3")
+    var appearance by mutableStateOf(DEFAULT_SCORE)
+    var influence by mutableStateOf(DEFAULT_SCORE)
+    var teamwork by mutableStateOf(DEFAULT_SCORE)
     var comment by mutableStateOf("")
 
     var isBusy by mutableStateOf(false)
@@ -104,6 +108,8 @@ class VoteAppPresenter(
                 if (pendingMatch != null) {
                     selectedMatch = pendingMatch
                     evaluatorType = VoteEvaluatorType.REFEREE_TEAM
+                    comment = ""
+                    resetScoreInputs()
                     hasExistingVote = pendingMatch.hasVoteBy.refereeTeam
                 }
             }
@@ -148,12 +154,17 @@ class VoteAppPresenter(
         statusMessage = "Loading matches..."
         try {
             selectedPhaseId = phaseId
+            // Newest match days first, but within the same day show the earliest
+            // kick-off first (date descending, then time-of-day ascending).
             matches = api.getMatches(
                 baseUrl = AppConfig.baseApiUrl,
                 phaseId = phaseId,
                 day = filterDay,
                 month = filterMonth,
                 year = filterYear,
+            ).sortedWith(
+                compareByDescending<MatchResponseDto> { matchDateTime(it.timestamp).date }
+                    .thenBy { matchDateTime(it.timestamp).time },
             )
             selectedMatch = null
             statusMessage = "Loaded ${matches.size} matches of phase $phaseId"
@@ -179,6 +190,7 @@ class VoteAppPresenter(
         selectedMatch = match
         evaluatorType = VoteEvaluatorType.REFEREE_TEAM
         comment = ""
+        resetScoreInputs()
         pendingPhaseId = null
         pendingMatchId = null
         hasExistingVote = match.hasVoteBy.refereeTeam
@@ -194,6 +206,16 @@ class VoteAppPresenter(
                 VoteEvaluatorType.DELEGATE -> match.hasVoteBy.delegate
             }
         }
+        // Each evaluator type is a separate vote context, so start fresh.
+        resetScoreInputs()
+        comment = ""
+    }
+
+    /** Resets the score selections back to their neutral defaults. */
+    private fun resetScoreInputs() {
+        appearance = DEFAULT_SCORE
+        influence = DEFAULT_SCORE
+        teamwork = DEFAULT_SCORE
     }
 
 
@@ -275,3 +297,20 @@ private fun Throwable.toUiMessage(prefix: String): String = when (this) {
     is VoteApiException -> "$prefix (HTTP $statusCode): ${message.orEmpty()}"
     else -> "$prefix: ${message.orEmpty()}"
 }
+
+/** Neutral default for the 1..5 score inputs (middle value). */
+private const val DEFAULT_SCORE = "3"
+
+/**
+ * Converts a match timestamp (seconds or milliseconds) into a [LocalDateTime] in
+ * the device's time zone, so matches can be ordered by calendar date and the
+ * time of day independently.
+ */
+@Suppress("DEPRECATION")
+private fun matchDateTime(timestamp: Long): LocalDateTime {
+    // The API returns seconds in some places and milliseconds in others.
+    val epochMillis = if (timestamp < 1_000_000_000_000L) timestamp * 1000L else timestamp
+    return Instant.fromEpochMilliseconds(epochMillis)
+        .toLocalDateTime(TimeZone.currentSystemDefault())
+}
+
