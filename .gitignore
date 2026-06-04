@@ -58,3 +58,6 @@ server/data/
 # Other potential temporary/generated files
 **/.DS_Store # Added for macOS for completeness
 .metadata/
+
+# Reference documentation PDFs (not tracked)
+*.pdf
