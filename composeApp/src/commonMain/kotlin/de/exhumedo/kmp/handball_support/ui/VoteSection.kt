@@ -52,24 +52,24 @@ fun VoteSection(
         Spacer(Modifier.height(8.dp))
 
         if (presenter.hasExistingVote) {
-            Text("Vote already submitted for this match and evaluator type", style = MaterialTheme.typography.bodySmall)
+            Text("Vote already submitted for this match and evaluator type", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
         }
 
-        ScoreField(
-            label = "Appearance (1-5)",
+        ScoreTileRow(
+            label = "Appearance",
             value = presenter.appearance,
             onValueChange = { presenter.appearance = it },
             enabled = !presenter.hasExistingVote,
         )
-        ScoreField(
-            label = "Influence (1-5)",
+        ScoreTileRow(
+            label = "Influence",
             value = presenter.influence,
             onValueChange = { presenter.influence = it },
             enabled = !presenter.hasExistingVote,
         )
-        ScoreField(
-            label = "Teamwork (1-5)",
+        ScoreTileRow(
+            label = "Teamwork",
             value = presenter.teamwork,
             onValueChange = { presenter.teamwork = it },
             enabled = !presenter.hasExistingVote,
