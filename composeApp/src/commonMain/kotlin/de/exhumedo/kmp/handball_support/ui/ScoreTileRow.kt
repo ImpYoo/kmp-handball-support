@@ -1,5 +1,7 @@
 package de.exhumedo.kmp.handball_support.ui
 
+import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -224,7 +226,7 @@ private fun scoreSemanticLabel(score: Int): String = when (score) {
 @Preview
 @Composable
 private fun ScoreTileRowPreviewUnselected() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             ScoreTileRow(
                 label = "Appearance",
@@ -238,7 +240,7 @@ private fun ScoreTileRowPreviewUnselected() {
 @Preview
 @Composable
 private fun ScoreTileRowPreviewSelectedLow() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             ScoreTileRow(
                 label = "Appearance",
@@ -252,7 +254,7 @@ private fun ScoreTileRowPreviewSelectedLow() {
 @Preview
 @Composable
 private fun ScoreTileRowPreviewSelectedHigh() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             ScoreTileRow(
                 label = "Teamwork",
@@ -266,7 +268,7 @@ private fun ScoreTileRowPreviewSelectedHigh() {
 @Preview
 @Composable
 private fun ScoreTileRowPreviewDisabled() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             ScoreTileRow(
                 label = "Influence (read-only)",

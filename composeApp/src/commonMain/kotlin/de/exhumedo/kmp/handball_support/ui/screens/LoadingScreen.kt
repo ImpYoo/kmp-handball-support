@@ -1,4 +1,6 @@
-package de.exhumedo.kmp.handball_support.ui.screens
+package de.exhumedo.kmp.handball_support.ui
+
+import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -94,7 +96,7 @@ fun LoadingOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f))
+                .background(Color.White.copy(alpha = 0.92f))
                 // Announce loading state to screen readers and update them when
                 // the message changes (e.g. "Signing in..." -> "Loading phases...").
                 .semantics(mergeDescendants = true) {
@@ -110,7 +112,7 @@ fun LoadingOverlay(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = statusMessage,
-                    color = Color.White,
+                    color = Color.Black,
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -181,7 +183,7 @@ private fun LoadingDotsRow() {
 @Preview
 @Composable
 private fun LoadingOverlayPreviewVisible() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.fillMaxSize()) {
             Text("Underlying screen content", modifier = Modifier.padding(16.dp))
             LoadingOverlay(
@@ -195,7 +197,7 @@ private fun LoadingOverlayPreviewVisible() {
 @Preview
 @Composable
 private fun LoadingOverlayPreviewSigningIn() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.fillMaxSize()) {
             Text("Underlying screen content", modifier = Modifier.padding(16.dp))
             LoadingOverlay(
@@ -209,7 +211,7 @@ private fun LoadingOverlayPreviewSigningIn() {
 @Preview
 @Composable
 private fun LoadingOverlayPreviewLoadingPhases() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.fillMaxSize()) {
             Text("Underlying screen content", modifier = Modifier.padding(16.dp))
             LoadingOverlay(
@@ -223,7 +225,7 @@ private fun LoadingOverlayPreviewLoadingPhases() {
 @Preview
 @Composable
 private fun LoadingOverlayPreviewLongMessage() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.fillMaxSize()) {
             Text("Underlying screen content", modifier = Modifier.padding(16.dp))
             LoadingOverlay(
@@ -237,7 +239,7 @@ private fun LoadingOverlayPreviewLongMessage() {
 @Preview
 @Composable
 private fun LoadingOverlayPreviewHidden() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.fillMaxSize()) {
             Text("Underlying screen content (overlay hidden)", modifier = Modifier.padding(16.dp))
             LoadingOverlay(

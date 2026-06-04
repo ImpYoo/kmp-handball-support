@@ -1,4 +1,5 @@
 package de.exhumedo.kmp.handball_support.ui
+import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,9 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,11 +22,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
+import de.exhumedo.kmp.handball_support.ui.theme.DhbAccentRule
+import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
 import de.exhumedo.kmp.handball_support.vote.VoteAppPresenter
 
 @Composable
@@ -41,39 +40,25 @@ fun PhasesScreen(
         onAction { presenter.loadPhases() }
     }
 
-    MaterialTheme {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxSize(),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Handball Support - Voting",
-                        modifier = Modifier.semantics { heading() },
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = if (presenter.token != null) "Logged in as ${presenter.role}" else "Not logged in",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-                if (presenter.token != null) {
-                    OutlinedButton(onClick = { presenter.logout() }) {
-                        Text("Logout")
+    AppTheme {
+        Column(modifier = Modifier.fillMaxSize()) {
+            DhbHeader(
+                title = "Handball Support",
+                subtitle = if (presenter.token != null) "Logged in as ${presenter.role}" else "Not logged in",
+                actions = {
+                    if (presenter.token != null) {
+                        DhbButton(onClick = { presenter.logout() }) {
+                            Text("Logout")
+                        }
                     }
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-
+                },
+            )
+            DhbAccentRule()
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scrollState),
+                    .verticalScroll(scrollState)
+                    .padding(16.dp),
             ) {
                 Section(title = "Filter by date (optional)") {
                     // Stage typed values locally so the filter is committed only on Apply.
@@ -126,7 +111,7 @@ fun PhasesScreen(
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        Button(
+                        DhbButton(
                             onClick = {
                                 presenter.setDateFilter(
                                     day = parsedDay,
@@ -139,7 +124,7 @@ fun PhasesScreen(
                             Text("Apply filter")
                         }
                         Spacer(Modifier.width(8.dp))
-                        OutlinedButton(
+                        DhbButton(
                             onClick = {
                                 dayInput = ""
                                 monthInput = ""

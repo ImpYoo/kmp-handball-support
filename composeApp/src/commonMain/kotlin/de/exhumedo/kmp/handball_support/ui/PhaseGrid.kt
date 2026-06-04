@@ -1,6 +1,9 @@
 package de.exhumedo.kmp.handball_support.ui
 
+import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
+
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -31,6 +35,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import handball_support.composeapp.generated.resources.Res
+import handball_support.composeapp.generated.resources.dhb_logo
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.unit.dp
 import de.exhumedo.kmp.handball_support.client.PhaseResponseDto
 
@@ -132,24 +139,25 @@ fun PhaseTile(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Image placeholder — fills the upper portion of the square tile.
+            // Image placeholder — DHB logo filling the upper portion of the tile.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = phase.shortName.ifBlank { phase.name }.take(4).uppercase(),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                Image(
+                    painter = painterResource(Res.drawable.dhb_logo),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
                 )
             }
-            // Phase name under the image.
+            // Phase name under the image. Always reserves 2 lines so every tile
+            // has the same height regardless of how short the name is.
             Text(
                 text = phase.name,
                 modifier = Modifier
@@ -158,6 +166,7 @@ fun PhaseTile(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
+                minLines = 2,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
@@ -169,7 +178,7 @@ fun PhaseTile(
 @Preview
 @Composable
 private fun PhaseTilePreviewUnselected() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             PhaseTile(
                 phase = previewPhases.first(),
@@ -184,7 +193,7 @@ private fun PhaseTilePreviewUnselected() {
 @Preview
 @Composable
 private fun PhaseTilePreviewSelected() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             PhaseTile(
                 phase = previewPhases.first(),
@@ -199,7 +208,7 @@ private fun PhaseTilePreviewSelected() {
 @Preview
 @Composable
 private fun PhaseGridPreviewSmall() {
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             PhaseGrid(
                 phases = previewPhases,
@@ -220,7 +229,7 @@ private fun PhaseGridPreviewMany() {
             shortName = "MD ${index + 1}",
         )
     }
-    MaterialTheme {
+    AppTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             PhaseGrid(
                 phases = many,

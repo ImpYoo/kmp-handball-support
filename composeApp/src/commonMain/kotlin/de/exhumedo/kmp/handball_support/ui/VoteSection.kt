@@ -1,4 +1,7 @@
 package de.exhumedo.kmp.handball_support.ui
+import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
+
+import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -6,9 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,13 +37,13 @@ fun VoteSection(
         Spacer(Modifier.height(12.dp))
 
         Row {
-            OutlinedButton(
+            DhbButton(
                 onClick = { presenter.updateEvaluatorType(VoteEvaluatorType.REFEREE_TEAM) },
                 enabled = presenter.evaluatorType != VoteEvaluatorType.REFEREE_TEAM,
             ) { Text("Referee team") }
             if (selectedMatch.delegate != null) {
                 Spacer(Modifier.width(8.dp))
-                OutlinedButton(
+                DhbButton(
                     onClick = { presenter.updateEvaluatorType(VoteEvaluatorType.DELEGATE) },
                     enabled = presenter.evaluatorType != VoteEvaluatorType.DELEGATE,
                 ) { Text("Delegate") }
@@ -84,7 +85,7 @@ fun VoteSection(
         )
 
         Spacer(Modifier.height(8.dp))
-        Button(
+        DhbButton(
             onClick = { onAction { presenter.submitVote() } },
             enabled = !presenter.isBusy && !presenter.hasExistingVote,
         ) {
@@ -127,7 +128,7 @@ private fun VoteSectionPreviewNoMatch() {
     val presenter = previewPresenter {
         selectedMatch = null
     }
-    MaterialTheme {
+    AppTheme {
         VoteSection(
             presenter = presenter,
             onAction = {},
@@ -143,7 +144,7 @@ private fun VoteSectionPreviewRefereeTeam() {
         evaluatorType = VoteEvaluatorType.REFEREE_TEAM
         isBusy = false
     }
-    MaterialTheme {
+    AppTheme {
         VoteSection(
             presenter = presenter,
             onAction = {},
@@ -160,7 +161,7 @@ private fun VoteSectionPreviewDelegateBusy() {
         isBusy = true
         comment = "Delegate perspective"
     }
-    MaterialTheme {
+    AppTheme {
         VoteSection(
             presenter = presenter,
             onAction = {},
@@ -179,7 +180,7 @@ private fun VoteSectionPreviewExistingVote() {
         influence = "5"
         teamwork = "3"
     }
-    MaterialTheme {
+    AppTheme {
         VoteSection(
             presenter = presenter,
             onAction = {},

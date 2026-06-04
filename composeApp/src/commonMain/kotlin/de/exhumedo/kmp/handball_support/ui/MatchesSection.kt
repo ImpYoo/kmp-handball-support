@@ -1,8 +1,9 @@
 package de.exhumedo.kmp.handball_support.ui
 
+import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
+
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -37,7 +38,7 @@ private fun MatchesSectionPreviewEmpty() {
         matches = emptyList()
         selectedMatch = null
     }
-    MaterialTheme {
+    AppTheme {
         MatchesSection(presenter = presenter)
     }
 }
@@ -49,7 +50,7 @@ private fun MatchesSectionPreviewLoaded() {
         matches = previewMatches
         selectedMatch = previewMatches.first()
     }
-    MaterialTheme {
+    AppTheme {
         MatchesSection(presenter = presenter)
     }
 }

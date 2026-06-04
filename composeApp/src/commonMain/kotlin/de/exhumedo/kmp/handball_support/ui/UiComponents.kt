@@ -1,4 +1,7 @@
 package de.exhumedo.kmp.handball_support.ui
+import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
+
+import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
 
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -19,7 +22,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,7 +61,7 @@ fun MatchRow(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            OutlinedButton(onClick = onSelect) {
+            DhbButton(onClick = onSelect) {
                 Text(if (selected) "Selected" else "Select")
             }
         }
@@ -227,7 +229,7 @@ fun LoadingIndicator(
 @Preview
 @Composable
 private fun MatchRowPreviewUnselected() {
-    MaterialTheme {
+    AppTheme {
         MatchRow(
             match = previewMatches.first(),
             selected = false,
@@ -239,7 +241,7 @@ private fun MatchRowPreviewUnselected() {
 @Preview
 @Composable
 private fun MatchRowPreviewSelected() {
-    MaterialTheme {
+    AppTheme {
         MatchRow(
             match = previewMatches.first(),
             selected = true,
@@ -251,7 +253,7 @@ private fun MatchRowPreviewSelected() {
 @Preview
 @Composable
 private fun ScoreFieldPreview() {
-    MaterialTheme {
+    AppTheme {
         ScoreField(
             label = "Appearance (1-5)",
             value = "4",
@@ -263,7 +265,7 @@ private fun ScoreFieldPreview() {
 @Preview
 @Composable
 private fun ScoreFieldPreviewDisabled() {
-    MaterialTheme {
+    AppTheme {
         ScoreField(
             label = "Appearance (Read-only)",
             value = "4",
@@ -276,7 +278,7 @@ private fun ScoreFieldPreviewDisabled() {
 @Preview
 @Composable
 private fun SectionPreview() {
-    MaterialTheme {
+    AppTheme {
         Section(title = "Preview Section") {
             Text("Section body content")
         }
@@ -286,7 +288,7 @@ private fun SectionPreview() {
 @Preview
 @Composable
 private fun LoadingIndicatorPreview() {
-    MaterialTheme {
+    AppTheme {
         LoadingIndicator()
     }
 }
