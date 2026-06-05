@@ -1,22 +1,26 @@
 package de.exhumedo.kmp.handball_support.ui
 import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
-import de.exhumedo.kmp.handball_support.ui.theme.DhbAccentRule
 import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
+import de.exhumedo.kmp.handball_support.ui.theme.Dimens
 import de.exhumedo.kmp.handball_support.vote.VoteAppPresenter
 
 @Composable
@@ -37,19 +41,25 @@ fun PhaseDetailScreen(
                     }
                 },
             )
-            DhbAccentRule()
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(16.dp),
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                MatchesSection(presenter = presenter)
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = presenter.statusMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = Dimens.contentMaxWidth)
+                        .fillMaxHeight()
+                        .verticalScroll(scrollState)
+                        .padding(Dimens.spaceLg),
+                ) {
+                    MatchesSection(presenter = presenter)
+                    Spacer(Modifier.height(Dimens.spaceMd))
+                    Text(
+                        text = presenter.statusMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

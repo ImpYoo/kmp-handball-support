@@ -1,5 +1,6 @@
 package de.exhumedo.kmp.handball_support.ui
 import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
+import de.exhumedo.kmp.handball_support.ui.theme.DhbDialog
 import de.exhumedo.kmp.handball_support.ui.theme.DhbToggleButton
 
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -113,45 +113,46 @@ fun VoteSection(
             } else {
                 delegateLabel
             }
-            AlertDialog(
+            DhbDialog(
                 onDismissRequest = { showConfirmDialog = false },
-                title = { Text("Submit vote?") },
-                text = {
-                    Column {
-                        Text("${selectedMatch.homeTeam.name} vs ${selectedMatch.awayTeam.name}")
-                        Spacer(Modifier.height(8.dp))
-                        Text("Evaluator: $evaluatorName")
-                        Spacer(Modifier.height(8.dp))
-                        ScoreSummaryRow(label = "Appearance", value = presenter.appearance)
-                        ScoreSummaryRow(label = "Influence", value = presenter.influence)
-                        ScoreSummaryRow(label = "Teamwork", value = presenter.teamwork)
-                        if (presenter.comment.isNotBlank()) {
-                            Spacer(Modifier.height(4.dp))
-                            Text("Comment: ${presenter.comment}")
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "This action cannot be undone.",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
+                title = "Submit vote?",
+                confirmText = "Submit",
+                onConfirm = {
+                    showConfirmDialog = false
+                    onAction { presenter.submitVote() }
                 },
-                confirmButton = {
-                    DhbButton(
-                        onClick = {
-                            showConfirmDialog = false
-                            onAction { presenter.submitVote() }
-                        },
-                    ) {
-                        Text("Submit")
-                    }
-                },
-                dismissButton = {
-                    DhbButton(onClick = { showConfirmDialog = false }) {
-                        Text("Cancel")
-                    }
-                },
-            )
+                dismissText = "Cancel",
+            ) {
+                Text(
+                    text = "${selectedMatch.homeTeam.name} vs ${selectedMatch.awayTeam.name}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "Evaluator: $evaluatorName",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                ScoreSummaryRow(label = "Appearance", value = presenter.appearance)
+                Spacer(Modifier.height(8.dp))
+                ScoreSummaryRow(label = "Influence", value = presenter.influence)
+                Spacer(Modifier.height(8.dp))
+                ScoreSummaryRow(label = "Teamwork", value = presenter.teamwork)
+                if (presenter.comment.isNotBlank()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = "Comment: ${presenter.comment}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "This action cannot be undone.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

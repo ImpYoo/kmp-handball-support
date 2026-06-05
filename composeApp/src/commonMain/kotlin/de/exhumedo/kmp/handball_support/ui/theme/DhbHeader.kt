@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,9 +26,9 @@ import handball_support.composeapp.generated.resources.dhb_logo
 import org.jetbrains.compose.resources.painterResource
 
 /**
- * DHB-style page header: a white bar with the DHB logo, a screen title and
- * optional trailing actions (e.g. a logout button). Mirrors the clean, light
- * header used on dhb.de.
+ * DHB-style page header: an elevated white bar with the DHB logo, a screen title
+ * and optional trailing actions (e.g. a logout button). The content is centered
+ * and width-capped to align with the page body on large screens.
  */
 @Composable
 fun DhbHeader(
@@ -35,38 +37,46 @@ fun DhbHeader(
     subtitle: String? = null,
     actions: @Composable () -> Unit = {},
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(DhbWhite)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = DhbWhite,
+        shadowElevation = 3.dp,
     ) {
-        DhbBrandMark()
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 12.dp),
-        ) {
-            Text(
-                text = title,
-                modifier = Modifier.semantics { heading() },
-                style = MaterialTheme.typography.titleLarge,
-                color = DhbBlack,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DhbBlack.copy(alpha = 0.6f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+        Box(contentAlignment = Alignment.TopCenter) {
+            Row(
+                modifier = Modifier
+                    .widthIn(max = Dimens.contentMaxWidth)
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceMd),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DhbBrandMark()
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = Dimens.spaceMd),
+                ) {
+                    Text(
+                        text = title,
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.titleLarge,
+                        color = DhbBlack,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = DhbBlack.copy(alpha = 0.6f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                actions()
             }
         }
-        actions()
     }
 }
 

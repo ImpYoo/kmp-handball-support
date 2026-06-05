@@ -1,6 +1,8 @@
 package de.exhumedo.kmp.handball_support.ui
 
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
+import de.exhumedo.kmp.handball_support.ui.theme.DhbRed
+import de.exhumedo.kmp.handball_support.ui.theme.Dimens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -60,7 +62,7 @@ fun PhaseGrid(
     selectedPhaseId: Int?,
     onPhaseClick: (PhaseResponseDto) -> Unit,
     modifier: Modifier = Modifier,
-    gap: Dp = 12.dp,
+    gap: Dp = 16.dp,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val columns = columnsFor(maxWidth)
@@ -106,9 +108,9 @@ fun PhaseTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(Dimens.cardCorner)
     val borderColor = if (selected) {
-        MaterialTheme.colorScheme.primary
+        DhbRed
     } else {
         MaterialTheme.colorScheme.outlineVariant
     }
@@ -136,7 +138,9 @@ fun PhaseTile(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (selected) Dimens.cardElevationRaised else Dimens.cardElevation,
+        ),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Image placeholder — DHB logo filling the upper portion of the tile.

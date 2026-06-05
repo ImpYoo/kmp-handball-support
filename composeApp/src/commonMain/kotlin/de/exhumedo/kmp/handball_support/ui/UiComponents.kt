@@ -1,14 +1,15 @@
 package de.exhumedo.kmp.handball_support.ui
 import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
-
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
+import de.exhumedo.kmp.handball_support.ui.theme.Dimens
+import de.exhumedo.kmp.handball_support.ui.theme.DhbRed
 
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,13 +21,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -45,41 +49,49 @@ fun MatchRow(
     selected: Boolean,
     onSelect: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            .padding(12.dp),
+    val shape = RoundedCornerShape(Dimens.cardCorner)
+    val borderColor = if (selected) DhbRed else MaterialTheme.colorScheme.outlineVariant
+    val borderWidth = if (selected) 2.dp else 1.dp
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(borderWidth, borderColor),
+        shadowElevation = if (selected) Dimens.cardElevationRaised else Dimens.cardElevation,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                modifier = Modifier.weight(1f),
-                text = "#${match.id} · ${formatMatchDateTime(match.timestamp)}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            DhbButton(onClick = onSelect) {
-                Text(if (selected) "Selected" else "Select")
+        Column(modifier = Modifier.padding(Dimens.spaceLg)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = "#${match.id} · ${formatMatchDateTime(match.timestamp)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                DhbButton(onClick = onSelect) {
+                    Text(if (selected) "Selected" else "Select")
+                }
             }
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = "${match.homeTeam.name}  vs  ${match.awayTeam.name}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        if (match.result.isNotBlank() || match.halftimeResult.isNotBlank()) {
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(Dimens.spaceSm))
             Text(
-                text = matchScoreLine(match),
-                style = MaterialTheme.typography.bodyMedium,
+                text = "${match.homeTeam.name}  vs  ${match.awayTeam.name}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
             )
+            if (match.result.isNotBlank() || match.halftimeResult.isNotBlank()) {
+                Spacer(Modifier.height(Dimens.spaceXs))
+                Text(
+                    text = matchScoreLine(match),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.height(Dimens.spaceMd))
+            MatchOfficialsBlock(match = match)
         }
-        Spacer(Modifier.height(8.dp))
-        MatchOfficialsBlock(match = match)
     }
 }
 
@@ -152,20 +164,33 @@ fun Section(
     title: String,
     content: @Composable () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outline)
-            .padding(12.dp),
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(Dimens.cardCorner),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shadowElevation = Dimens.cardElevation,
     ) {
-        Text(
-            text = title,
-            modifier = Modifier.semantics { heading() },
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-        )
-        Spacer(Modifier.height(8.dp))
-        content()
+        Column(modifier = Modifier.padding(Dimens.spaceLg)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Short red brand accent bar before the title.
+                Box(
+                    modifier = Modifier
+                        .size(width = Dimens.accentBarWidth, height = Dimens.accentBarHeight)
+                        .clip(RoundedCornerShape(Dimens.accentBarWidth))
+                        .background(DhbRed),
+                )
+                Spacer(Modifier.width(Dimens.spaceMd))
+                Text(
+                    text = title,
+                    modifier = Modifier.semantics { heading() },
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            Spacer(Modifier.height(Dimens.spaceLg))
+            content()
+        }
     }
 }
 
