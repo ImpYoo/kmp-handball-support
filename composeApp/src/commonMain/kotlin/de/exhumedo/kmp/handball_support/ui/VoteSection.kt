@@ -10,10 +10,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -92,12 +97,74 @@ fun VoteSection(
         )
 
         Spacer(Modifier.height(8.dp))
+
+        var showConfirmDialog by remember { mutableStateOf(false) }
+
         DhbButton(
-            onClick = { onAction { presenter.submitVote() } },
+            onClick = { showConfirmDialog = true },
             enabled = !presenter.isBusy && !presenter.hasExistingVote,
         ) {
             Text("Submit Vote")
         }
+
+        if (showConfirmDialog) {
+            val evaluatorName = if (presenter.evaluatorType == VoteEvaluatorType.REFEREE_TEAM) {
+                refereeLabel
+            } else {
+                delegateLabel
+            }
+            AlertDialog(
+                onDismissRequest = { showConfirmDialog = false },
+                title = { Text("Submit vote?") },
+                text = {
+                    Column {
+                        Text("${selectedMatch.homeTeam.name} vs ${selectedMatch.awayTeam.name}")
+                        Spacer(Modifier.height(8.dp))
+                        Text("Evaluator: $evaluatorName")
+                        Spacer(Modifier.height(8.dp))
+                        ScoreSummaryRow(label = "Appearance", value = presenter.appearance)
+                        ScoreSummaryRow(label = "Influence", value = presenter.influence)
+                        ScoreSummaryRow(label = "Teamwork", value = presenter.teamwork)
+                        if (presenter.comment.isNotBlank()) {
+                            Spacer(Modifier.height(4.dp))
+                            Text("Comment: ${presenter.comment}")
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "This action cannot be undone.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                },
+                confirmButton = {
+                    DhbButton(
+                        onClick = {
+                            showConfirmDialog = false
+                            onAction { presenter.submitVote() }
+                        },
+                    ) {
+                        Text("Submit")
+                    }
+                },
+                dismissButton = {
+                    DhbButton(onClick = { showConfirmDialog = false }) {
+                        Text("Cancel")
+                    }
+                },
+            )
+        }
+    }
+}
+
+/** A label + colored smiley tile row used in the submit-confirmation summary. */
+@Composable
+private fun ScoreSummaryRow(label: String, value: String) {
+    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Text(
+            text = "$label:",
+            modifier = Modifier.width(110.dp),
+        )
+        ScoreValueTile(value = value, size = 40.dp)
     }
 }
 

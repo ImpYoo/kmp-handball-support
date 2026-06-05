@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -184,6 +185,55 @@ private fun SmileyFace(
                 width = s * 0.07f,
                 cap = StrokeCap.Round,
             ),
+        )
+    }
+}
+
+/**
+ * Standalone colored smiley for a score string ("1".."5"), e.g. for summaries
+ * and the submit-confirmation dialog. Renders nothing for invalid input.
+ */
+@Composable
+fun ScoreSmiley(
+    value: String,
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 24.dp,
+) {
+    val score = value.toIntOrNull() ?: return
+    SmileyFace(
+        score = score,
+        color = scoreColor(score),
+        modifier = modifier.size(size),
+    )
+}
+
+/**
+ * A single score rendered exactly like a *selected* tile in [ScoreTileRow]:
+ * a rounded square filled in the score color with a white smiley and a matching
+ * border. Renders nothing for invalid input.
+ */
+@Composable
+fun ScoreValueTile(
+    value: String,
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 40.dp,
+) {
+    val score = value.toIntOrNull() ?: return
+    val baseColor = scoreColor(score)
+    val shape = RoundedCornerShape(8.dp)
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(shape)
+            .background(baseColor)
+            .border(width = 2.dp, color = baseColor, shape = shape)
+            .padding(6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        SmileyFace(
+            score = score,
+            color = Color.White,
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }
