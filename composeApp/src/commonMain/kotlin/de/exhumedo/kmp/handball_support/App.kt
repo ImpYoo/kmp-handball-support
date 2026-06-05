@@ -25,7 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import de.exhumedo.kmp.handball_support.navigation.bindBrowserNavigation
 import de.exhumedo.kmp.handball_support.navigation.initialDeepLink
-import de.exhumedo.kmp.handball_support.ui.LoadingOverlay
+import de.exhumedo.kmp.handball_support.ui.screens.LoadingOverlay
 import de.exhumedo.kmp.handball_support.ui.LoginScreen
 import de.exhumedo.kmp.handball_support.ui.PhaseDetailScreen
 import de.exhumedo.kmp.handball_support.ui.PhasesScreen

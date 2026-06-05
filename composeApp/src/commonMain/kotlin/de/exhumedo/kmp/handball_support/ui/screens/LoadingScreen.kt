@@ -1,32 +1,13 @@
-package de.exhumedo.kmp.handball_support.ui
+package de.exhumedo.kmp.handball_support.ui.screens
 
-import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
-
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,13 +17,14 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
+import de.exhumedo.kmp.handball_support.ui.theme.DhbBlack
+import de.exhumedo.kmp.handball_support.ui.theme.DhbRed
+import de.exhumedo.kmp.handball_support.ui.theme.DhbYellow
 import kotlinx.coroutines.delay
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
 
-private val DotBlack = Color(0xFF000000)
-private val DotRed = Color(0xFFD32F2F)
-private val DotYellow = Color(0xFFFBC02D)
 
 /**
  * Defines a fill window for a single dot inside the cycle [0f, 1f].
@@ -73,7 +55,7 @@ private fun DotPhase.fillAlpha(progress: Float): Float = when {
 fun LoadingOverlay(
     isVisible: Boolean,
     statusMessage: String = "Loading...",
-    minDisplayDuration: Duration = 3.seconds,
+    minDisplayDuration: Duration = 300.milliseconds,
 ) {
     // Persist the "is currently shown" flag across recompositions. We do NOT key
     // this on `isVisible` because that would reset the state every time the input
@@ -139,21 +121,21 @@ private fun LoadingDotsRow() {
 
     val phases = listOf(
         DotPhase(
-            color = DotBlack,
+            color = DhbBlack,
             fadeInStart = 0.00f,
             fullStart = 0.15f,
             fadeOutStart = 0.75f,
             fadeOutEnd = 0.90f,
         ),
         DotPhase(
-            color = DotRed,
+            color = DhbRed,
             fadeInStart = 0.25f,
             fullStart = 0.40f,
             fadeOutStart = 0.75f,
             fadeOutEnd = 0.90f,
         ),
         DotPhase(
-            color = DotYellow,
+            color = DhbYellow,
             fadeInStart = 0.50f,
             fullStart = 0.65f,
             fadeOutStart = 0.75f,

@@ -1,5 +1,6 @@
 package de.exhumedo.kmp.handball_support.ui
 import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
+import de.exhumedo.kmp.handball_support.ui.theme.DhbToggleButton
 
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
 
@@ -36,17 +37,23 @@ fun VoteSection(
         SelectedMatchDetails(match = selectedMatch)
         Spacer(Modifier.height(12.dp))
 
+        val refereeLabel = listOfNotNull(
+            selectedMatch.refereeA?.name,
+            selectedMatch.refereeB?.name,
+        ).joinToString(" & ").ifBlank { "Referee team" }
+        val delegateLabel = selectedMatch.delegate?.name ?: "Delegate"
+
         Row {
-            DhbButton(
+            DhbToggleButton(
+                selected = presenter.evaluatorType == VoteEvaluatorType.REFEREE_TEAM,
                 onClick = { presenter.updateEvaluatorType(VoteEvaluatorType.REFEREE_TEAM) },
-                enabled = presenter.evaluatorType != VoteEvaluatorType.REFEREE_TEAM,
-            ) { Text("Referee team") }
+            ) { Text(refereeLabel) }
             if (selectedMatch.delegate != null) {
                 Spacer(Modifier.width(8.dp))
-                DhbButton(
+                DhbToggleButton(
+                    selected = presenter.evaluatorType == VoteEvaluatorType.DELEGATE,
                     onClick = { presenter.updateEvaluatorType(VoteEvaluatorType.DELEGATE) },
-                    enabled = presenter.evaluatorType != VoteEvaluatorType.DELEGATE,
-                ) { Text("Delegate") }
+                ) { Text(delegateLabel) }
             }
         }
 

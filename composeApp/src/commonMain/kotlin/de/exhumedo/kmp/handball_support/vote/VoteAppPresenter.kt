@@ -198,6 +198,9 @@ class VoteAppPresenter(
     }
 
     fun updateEvaluatorType(type: VoteEvaluatorType) {
+        // Re-selecting the current evaluator is a no-op so an in-progress vote
+        // is not reset by tapping the already-selected button.
+        if (type == evaluatorType && selectedMatch != null) return
         evaluatorType = type
         val match = selectedMatch
         if (match != null) {

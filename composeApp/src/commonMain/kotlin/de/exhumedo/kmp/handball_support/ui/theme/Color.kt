@@ -13,6 +13,9 @@ val DhbRedLightContainer = Color(0xFFFFDAD6)
 val DhbBlack = Color(0xFF000000)
 val DhbWhite = Color(0xFFFFFFFF)
 
+/** DHB logo yellow — used for the selected toggle state. */
+val DhbYellow = Color(0xFFF6C92A)
+
 /** Anthracite / near-black used for the header bar. */
 val DhbAnthracite = Color(0xFF1D1D1B)
 val DhbAnthraciteVariant = Color(0xFF2E2E2C)
