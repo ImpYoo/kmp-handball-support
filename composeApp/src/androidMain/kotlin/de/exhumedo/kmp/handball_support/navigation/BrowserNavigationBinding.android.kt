@@ -10,3 +10,7 @@ actual suspend fun bindBrowserNavigation(
     // No browser history on Android.
 }
 
+actual fun bindBrowserBackHandler(onBrowserBack: (String) -> Unit) {
+    // No browser history on Android.
+}
+

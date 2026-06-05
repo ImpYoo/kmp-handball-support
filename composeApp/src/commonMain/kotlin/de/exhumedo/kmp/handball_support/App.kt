@@ -23,6 +23,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import de.exhumedo.kmp.handball_support.navigation.bindBrowserBackHandler
 import de.exhumedo.kmp.handball_support.navigation.bindBrowserNavigation
 import de.exhumedo.kmp.handball_support.navigation.initialDeepLink
 import de.exhumedo.kmp.handball_support.ui.screens.LoadingOverlay
@@ -91,6 +92,15 @@ fun App() {
     LaunchedEffect(navController) {
         withFrameNanos { }
         applyInitialDeepLink(presenter, navController)
+    }
+
+    // Browser Back/Forward: drive the NavController to match the new URL. This
+    // covers the case where the platform's own popstate sync does not pop the
+    // back stack (URL changes but the screen stays put).
+    LaunchedEffect(navController) {
+        bindBrowserBackHandler { deepLink ->
+            handleBrowserBack(presenter, navController, deepLink)
+        }
     }
 
     LaunchedEffect(presenter, navController) {
@@ -247,21 +257,6 @@ fun App() {
                                 }
                             }
 
-                            LaunchedEffect(presenter.selectedMatch?.id, presenter.token, phaseId) {
-                                val matchId = presenter.selectedMatch?.id ?: return@LaunchedEffect
-                                if (presenter.token != null && presenter.selectedPhaseId == phaseId) {
-                                    navController.navigateSingleTop(
-                                        AppRoute.Vote(
-                                            phaseId = phaseId,
-                                            matchId = matchId,
-                                            day = presenter.filterDay,
-                                            month = presenter.filterMonth,
-                                            year = presenter.filterYear,
-                                        ),
-                                    )
-                                }
-                            }
-
                             PhaseDetailScreen(
                                 presenter = presenter,
                                 onBack = {
@@ -269,6 +264,25 @@ fun App() {
                                     navController.navigateSingleTop(
                                         phasesPath(presenter.filterDay, presenter.filterMonth, presenter.filterYear),
                                     )
+                                },
+                                onMatchSelected = { match ->
+                                    // Navigate imperatively on the user's click. When not
+                                    // signed in, chooseMatch() has already set the pending
+                                    // vote and the effect above routes to Login instead.
+                                    // Driving this from a click (not from observing
+                                    // selectedMatch) is what lets the browser Back button
+                                    // work without immediately bouncing forward again.
+                                    if (presenter.token != null) {
+                                        navController.navigateSingleTop(
+                                            AppRoute.Vote(
+                                                phaseId = phaseId,
+                                                matchId = match.id,
+                                                day = presenter.filterDay,
+                                                month = presenter.filterMonth,
+                                                year = presenter.filterYear,
+                                            ),
+                                        )
+                                    }
                                 },
                             )
                         }
@@ -449,6 +463,59 @@ private suspend fun applyInitialDeepLink(
                 phasesPath(presenter.filterDay, presenter.filterMonth, presenter.filterYear),
             ) { launchSingleTop = true }
         }
+    }
+}
+
+/**
+ * Handles a browser Back/Forward (popstate) by driving the [NavController] to the
+ * destination encoded in the new URL. Pops to the matching back-stack entry when
+ * present (Back), otherwise navigates to it (Forward / unknown).
+ */
+private fun handleBrowserBack(
+    presenter: VoteAppPresenter,
+    navController: NavController,
+    deepLink: String,
+) {
+    val (path, query) = deepLink.splitOnce('?')
+    val params = parseQuery(query)
+    val day = params["day"]?.toIntOrNull()
+    val month = params["month"]?.toIntOrNull()
+    val year = params["year"]?.toIntOrNull()
+
+    presenter.setDateFilter(day = day, month = month, year = year)
+
+    val normalized = path.trim('/').ifEmpty { "phases" }
+    val phaseAndMatch = "^phases/(\\d+)/matches/(\\d+)$".toRegex().matchEntire(normalized)
+    val phaseOnly = "^phases/(\\d+)$".toRegex().matchEntire(normalized)
+
+    val target: Any = when {
+        phaseAndMatch != null -> AppRoute.Vote(
+            phaseId = phaseAndMatch.groupValues[1].toInt(),
+            matchId = phaseAndMatch.groupValues[2].toInt(),
+            day = day,
+            month = month,
+            year = year,
+        )
+        phaseOnly != null -> AppRoute.PhaseDetail(
+            phaseId = phaseOnly.groupValues[1].toInt(),
+            day = day,
+            month = month,
+            year = year,
+        )
+        normalized == "login" -> AppRoute.Login(
+            phaseId = params["phaseId"]?.toIntOrNull(),
+            matchId = params["matchId"]?.toIntOrNull(),
+            day = day,
+            month = month,
+            year = year,
+        )
+        else -> AppRoute.Phases(day = day, month = month, year = year)
+    }
+
+    // Prefer popping to an existing entry (browser Back); otherwise navigate
+    // (browser Forward or an unseen destination).
+    if (!navController.popBackStack(route = target, inclusive = false)) {
+        navController.navigate(route = target) { launchSingleTop = true }
     }
 }
 

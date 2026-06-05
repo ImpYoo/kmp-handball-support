@@ -11,3 +11,11 @@ expect suspend fun bindBrowserNavigation(
 	routeForBackStackEntry: ((NavBackStackEntry) -> String)? = null,
 )
 
+/**
+ * Registers a handler invoked on browser back/forward (popstate) with the
+ * current location as a deep-link string (e.g. "phases/7045?day=1"). Lets the
+ * app drive the [NavController] to match the URL when the platform binding's
+ * own reverse sync does not. No-op on non-web targets.
+ */
+expect fun bindBrowserBackHandler(onBrowserBack: (String) -> Unit)
+

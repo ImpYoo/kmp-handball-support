@@ -9,11 +9,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import de.exhumedo.kmp.handball_support.client.MatchResponseDto
 import de.exhumedo.kmp.handball_support.vote.VoteAppPresenter
 
 @Composable
 fun MatchesSection(
     presenter: VoteAppPresenter,
+    onMatchSelected: (MatchResponseDto) -> Unit = {},
 ) {
     Section(title = "2) Select Match") {
         if (presenter.matches.isEmpty()) {
@@ -25,7 +27,10 @@ fun MatchesSection(
             MatchRow(
                 match = match,
                 selected = presenter.selectedMatch?.id == match.id,
-                onSelect = { presenter.chooseMatch(match) },
+                onSelect = {
+                    presenter.chooseMatch(match)
+                    onMatchSelected(match)
+                },
             )
         }
     }

@@ -10,3 +10,7 @@ actual suspend fun bindBrowserNavigation(
     // No browser history on desktop JVM.
 }
 
+actual fun bindBrowserBackHandler(onBrowserBack: (String) -> Unit) {
+    // No browser history on desktop JVM.
+}
+

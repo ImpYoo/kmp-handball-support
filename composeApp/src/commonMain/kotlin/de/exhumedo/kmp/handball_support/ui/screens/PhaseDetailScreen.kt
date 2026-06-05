@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import de.exhumedo.kmp.handball_support.client.MatchResponseDto
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
 import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
 import de.exhumedo.kmp.handball_support.ui.theme.Dimens
@@ -27,6 +28,7 @@ import de.exhumedo.kmp.handball_support.vote.VoteAppPresenter
 fun PhaseDetailScreen(
     presenter: VoteAppPresenter,
     onBack: () -> Unit,
+    onMatchSelected: (MatchResponseDto) -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
 
@@ -52,7 +54,10 @@ fun PhaseDetailScreen(
                         .verticalScroll(scrollState)
                         .padding(Dimens.spaceLg),
                 ) {
-                    MatchesSection(presenter = presenter)
+                    MatchesSection(
+                        presenter = presenter,
+                        onMatchSelected = onMatchSelected,
+                    )
                     Spacer(Modifier.height(Dimens.spaceMd))
                     Text(
                         text = presenter.statusMessage,
