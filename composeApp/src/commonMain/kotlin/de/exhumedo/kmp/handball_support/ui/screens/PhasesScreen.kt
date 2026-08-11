@@ -34,8 +34,10 @@ import de.exhumedo.kmp.handball_support.vote.VoteAppPresenter
 
 @Composable
 fun PhasesScreen(
+    showFilter: Boolean,
     presenter: VoteAppPresenter,
     onAction: (suspend () -> Unit) -> Unit,
+    onNavigateHome: () -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
 
@@ -49,7 +51,11 @@ fun PhasesScreen(
                 title = "Handball Support",
                 subtitle = if (presenter.token != null) "Logged in as ${presenter.role}" else "Not logged in",
                 actions = {
+                    DhbButton(onClick = onNavigateHome) {
+                        Text("Menü")
+                    }
                     if (presenter.token != null) {
+                        Spacer(Modifier.width(8.dp))
                         DhbButton(onClick = { presenter.logout() }) {
                             Text("Logout")
                         }
@@ -67,86 +73,88 @@ fun PhasesScreen(
                         .verticalScroll(scrollState)
                         .padding(Dimens.spaceLg),
                 ) {
-                    Section(title = "Filter by date (optional)") {
-                    // Stage typed values locally so the filter is committed only on Apply.
-                    var dayInput by remember(presenter.filterDay) {
-                        mutableStateOf(presenter.filterDay?.toString() ?: "")
-                    }
-                    var monthInput by remember(presenter.filterMonth) {
-                        mutableStateOf(presenter.filterMonth?.toString() ?: "")
-                    }
-                    var yearInput by remember(presenter.filterYear) {
-                        mutableStateOf(presenter.filterYear?.toString() ?: "")
-                    }
+                    if (showFilter) {
+                        Section(title = "Filter by date (optional)") {
+                            // Stage typed values locally so the filter is committed only on Apply.
+                            var dayInput by remember(presenter.filterDay) {
+                                mutableStateOf(presenter.filterDay?.toString() ?: "")
+                            }
+                            var monthInput by remember(presenter.filterMonth) {
+                                mutableStateOf(presenter.filterMonth?.toString() ?: "")
+                            }
+                            var yearInput by remember(presenter.filterYear) {
+                                mutableStateOf(presenter.filterYear?.toString() ?: "")
+                            }
 
-                    val parsedDay = dayInput.takeIf { it.isNotBlank() }?.toIntOrNull()
-                    val parsedMonth = monthInput.takeIf { it.isNotBlank() }?.toIntOrNull()
-                    val parsedYear = yearInput.takeIf { it.isNotBlank() }?.toIntOrNull()
-                    val isDirty = parsedDay != presenter.filterDay ||
-                        parsedMonth != presenter.filterMonth ||
-                        parsedYear != presenter.filterYear
-                    val hasAnyFilter = parsedDay != null || parsedMonth != null || parsedYear != null ||
-                        presenter.filterDay != null || presenter.filterMonth != null || presenter.filterYear != null
+                            val parsedDay = dayInput.takeIf { it.isNotBlank() }?.toIntOrNull()
+                            val parsedMonth = monthInput.takeIf { it.isNotBlank() }?.toIntOrNull()
+                            val parsedYear = yearInput.takeIf { it.isNotBlank() }?.toIntOrNull()
+                            val isDirty = parsedDay != presenter.filterDay ||
+                                parsedMonth != presenter.filterMonth ||
+                                parsedYear != presenter.filterYear
+                            val hasAnyFilter = parsedDay != null || parsedMonth != null || parsedYear != null ||
+                                presenter.filterDay != null || presenter.filterMonth != null || presenter.filterYear != null
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        OutlinedTextField(
-                            value = dayInput,
-                            onValueChange = { value -> dayInput = value.filter { it.isDigit() } },
-                            label = { Text("Day") },
-                            singleLine = true,
-                            modifier = Modifier.width(80.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        OutlinedTextField(
-                            value = monthInput,
-                            onValueChange = { value -> monthInput = value.filter { it.isDigit() } },
-                            label = { Text("Month") },
-                            singleLine = true,
-                            modifier = Modifier.width(90.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        OutlinedTextField(
-                            value = yearInput,
-                            onValueChange = { value -> yearInput = value.filter { it.isDigit() } },
-                            label = { Text("Year") },
-                            singleLine = true,
-                            modifier = Modifier.width(100.dp),
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        DhbButton(
-                            onClick = {
-                                presenter.setDateFilter(
-                                    day = parsedDay,
-                                    month = parsedMonth,
-                                    year = parsedYear,
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                OutlinedTextField(
+                                    value = dayInput,
+                                    onValueChange = { value -> dayInput = value.filter { it.isDigit() } },
+                                    label = { Text("Day") },
+                                    singleLine = true,
+                                    modifier = Modifier.width(80.dp),
                                 )
-                            },
-                            enabled = isDirty,
-                        ) {
-                            Text("Apply filter")
+                                Spacer(Modifier.width(8.dp))
+                                OutlinedTextField(
+                                    value = monthInput,
+                                    onValueChange = { value -> monthInput = value.filter { it.isDigit() } },
+                                    label = { Text("Month") },
+                                    singleLine = true,
+                                    modifier = Modifier.width(90.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                OutlinedTextField(
+                                    value = yearInput,
+                                    onValueChange = { value -> yearInput = value.filter { it.isDigit() } },
+                                    label = { Text("Year") },
+                                    singleLine = true,
+                                    modifier = Modifier.width(100.dp),
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                DhbButton(
+                                    onClick = {
+                                        presenter.setDateFilter(
+                                            day = parsedDay,
+                                            month = parsedMonth,
+                                            year = parsedYear,
+                                        )
+                                    },
+                                    enabled = isDirty,
+                                ) {
+                                    Text("Apply filter")
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                DhbButton(
+                                    onClick = {
+                                        dayInput = ""
+                                        monthInput = ""
+                                        yearInput = ""
+                                        presenter.setDateFilter(day = null, month = null, year = null)
+                                    },
+                                    enabled = hasAnyFilter,
+                                ) {
+                                    Text("Clear")
+                                }
+                            }
                         }
-                        Spacer(Modifier.width(8.dp))
-                        DhbButton(
-                            onClick = {
-                                dayInput = ""
-                                monthInput = ""
-                                yearInput = ""
-                                presenter.setDateFilter(day = null, month = null, year = null)
-                            },
-                            enabled = hasAnyFilter,
-                        ) {
-                            Text("Clear")
-                        }
+                        Spacer(Modifier.height(12.dp))
                     }
-                }
-                Spacer(Modifier.height(12.dp))
 
-                Section(title = "1) Select Phase") {
+                    Section(title = "1) Select Phase") {
                     if (presenter.phases.isEmpty()) {
                         Text("No phases available")
                     } else {
@@ -181,6 +189,7 @@ private fun PhasesScreenPreview() {
         phases = previewPhases
     }
     PhasesScreen(
+        showFilter = false,
         presenter = presenter,
         onAction = {},
     )
@@ -196,6 +205,7 @@ private fun PhasesScreenPreviewWithMatches() {
         selectedPhaseId = previewPhases.first().phaseId
     }
     PhasesScreen(
+        showFilter = true,
         presenter = presenter,
         onAction = {},
     )
