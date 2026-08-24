@@ -156,7 +156,7 @@ fun App() {
                             onOpenRoster = { navigator.navigate(AppRoute.Roster) },
                             onOpenMatchSetup = { navigator.navigate(AppRoute.MatchSetup) },
                             onOpenDrawingPad = { navigator.navigate(AppRoute.DrawingPad) },
-                            onOpenTacticBoard = { navigator.navigate(AppRoute.TacticBoard) },
+                            onOpenTacticBoard = { navigator.navigate(AppRoute.TacticBoard()) },
                         )
                     }
 
@@ -471,9 +471,11 @@ fun App() {
                         )
                     }
 
-                    composable<AppRoute.TacticBoard> {
+                    composable<AppRoute.TacticBoard> { entry ->
+                        val route = entry.toRoute<AppRoute.TacticBoard>()
                         TacticBoardScreen(
                             presenter = tacticBoardPresenter,
+                            debug = route.debug,
                             onNavigateHome = { navigator.navigate(AppRoute.Home) },
                         )
                     }

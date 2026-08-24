@@ -51,7 +51,7 @@ fun parseDeepLink(raw: String): ParsedDeepLink {
         normalized == "roster" -> AppRoute.Roster
         normalized == "setup" -> AppRoute.MatchSetup
         normalized == "drawing" -> AppRoute.DrawingPad
-        normalized == "tactic" -> AppRoute.TacticBoard
+        normalized == "tactic" -> AppRoute.TacticBoard(debug = params["debug"]?.equals("true", ignoreCase = true) ?: false)
         else -> AppRoute.Home
     }
 

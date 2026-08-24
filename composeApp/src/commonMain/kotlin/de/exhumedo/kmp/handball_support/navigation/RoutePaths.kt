@@ -35,5 +35,5 @@ fun AppRoute.toPath(): String = when (this) {
     AppRoute.Roster -> "roster"
     AppRoute.MatchSetup -> "setup"
     AppRoute.DrawingPad -> "drawing"
-    AppRoute.TacticBoard -> "tactic"
+    is AppRoute.TacticBoard -> "tactic" + queryString("debug" to debug.takeIf { it })
 }

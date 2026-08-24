@@ -81,5 +81,7 @@ sealed interface AppRoute {
 
     @Serializable
     @SerialName("tactic")
-    data object TacticBoard : AppRoute
+    data class TacticBoard(
+        val debug: Boolean = false,
+    ) : AppRoute
 }

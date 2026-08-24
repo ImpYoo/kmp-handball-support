@@ -72,6 +72,7 @@ import kotlin.math.min
 @Composable
 fun TacticBoardScreen(
     presenter: TacticBoardPresenter,
+    debug: Boolean = false,
     onNavigateHome: () -> Unit,
 ) {
     var rotated by remember { mutableStateOf(false) }
@@ -95,78 +96,80 @@ fun TacticBoardScreen(
                 },
             )
 
-            // ── Debug panel (above the field) ─────────────────────────
-            val homeTokens = presenter.tokens.filter { it.type == TokenType.HOME }
-            val guestTokens = presenter.tokens.filter { it.type == TokenType.GUEST }
-            val homePosText = homeTokens.joinToString("\n") {
-                "${it.label}: x=${it.fieldX}, y=${it.fieldY}"
-            }
-            val guestPosText = guestTokens.joinToString("\n") {
-                "${it.label}: x=${it.fieldX}, y=${it.fieldY}"
-            }
-            Row(modifier = Modifier.fillMaxWidth().padding(4.dp)) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 4.dp)
-                        .background(Color.Black.copy(alpha = 0.85f))
-                        .padding(6.dp),
-                ) {
-                    Text("HOME", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
-                    OutlinedTextField(
-                        value = homePosText,
-                        onValueChange = {},
-                        readOnly = true,
-                        textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    var homeInput by remember { mutableStateOf("") }
-                    OutlinedTextField(
-                        value = homeInput,
-                        onValueChange = { homeInput = it },
-                        label = { Text("Paste Home", color = Color.White, style = MaterialTheme.typography.labelSmall) },
-                        textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    DhbButton(onClick = {
-                        applyPositions(homeInput, presenter, TokenType.HOME)
-                        homeInput = ""
-                    }) {
-                        Text("Apply Home", style = MaterialTheme.typography.labelSmall)
-                    }
+            // ── Debug panel (above the field, only with ?debug=true) ────
+            if (debug) {
+                val homeTokens = presenter.tokens.filter { it.type == TokenType.HOME }
+                val guestTokens = presenter.tokens.filter { it.type == TokenType.GUEST }
+                val homePosText = homeTokens.joinToString("\n") {
+                    "${it.label}: x=${it.fieldX}, y=${it.fieldY}"
                 }
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp)
-                        .background(Color.Black.copy(alpha = 0.85f))
-                        .padding(6.dp),
-                ) {
-                    Text("GUEST", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
-                    OutlinedTextField(
-                        value = guestPosText,
-                        onValueChange = {},
-                        readOnly = true,
-                        textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    var guestInput by remember { mutableStateOf("") }
-                    OutlinedTextField(
-                        value = guestInput,
-                        onValueChange = { guestInput = it },
-                        label = { Text("Paste Guest", color = Color.White, style = MaterialTheme.typography.labelSmall) },
-                        textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    DhbButton(onClick = {
-                        applyPositions(guestInput, presenter, TokenType.GUEST)
-                        guestInput = ""
-                    }) {
-                        Text("Apply Guest", style = MaterialTheme.typography.labelSmall)
+                val guestPosText = guestTokens.joinToString("\n") {
+                    "${it.label}: x=${it.fieldX}, y=${it.fieldY}"
+                }
+                Row(modifier = Modifier.fillMaxWidth().padding(4.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 4.dp)
+                            .background(Color.Black.copy(alpha = 0.85f))
+                            .padding(6.dp),
+                    ) {
+                        Text("HOME", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                        OutlinedTextField(
+                            value = homePosText,
+                            onValueChange = {},
+                            readOnly = true,
+                            textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        var homeInput by remember { mutableStateOf("") }
+                        OutlinedTextField(
+                            value = homeInput,
+                            onValueChange = { homeInput = it },
+                            label = { Text("Paste Home", color = Color.White, style = MaterialTheme.typography.labelSmall) },
+                            textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        DhbButton(onClick = {
+                            applyPositions(homeInput, presenter, TokenType.HOME)
+                            homeInput = ""
+                        }) {
+                            Text("Apply Home", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 4.dp)
+                            .background(Color.Black.copy(alpha = 0.85f))
+                            .padding(6.dp),
+                    ) {
+                        Text("GUEST", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                        OutlinedTextField(
+                            value = guestPosText,
+                            onValueChange = {},
+                            readOnly = true,
+                            textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        var guestInput by remember { mutableStateOf("") }
+                        OutlinedTextField(
+                            value = guestInput,
+                            onValueChange = { guestInput = it },
+                            label = { Text("Paste Guest", color = Color.White, style = MaterialTheme.typography.labelSmall) },
+                            textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        DhbButton(onClick = {
+                            applyPositions(guestInput, presenter, TokenType.GUEST)
+                            guestInput = ""
+                        }) {
+                            Text("Apply Guest", style = MaterialTheme.typography.labelSmall)
+                        }
                     }
                 }
             }
