@@ -1,0 +1,50 @@
+[
+    {
+        "tournamentId": 1,
+        "seasonId": 260,
+        "isHbl": true,
+        "label": "OPEL HBL"
+    },
+    {
+        "tournamentId": 40,
+        "seasonId": 259,
+        "isHbl": true,
+        "label": "2. Handball-Bundesliga M"
+    },
+    {
+        "tournamentId": 80,
+        "seasonId": 257,
+        "isHbl": true,
+        "label": "DHB-Pokal M"
+    },
+    {
+        "tournamentId": 88,
+        "seasonId": 256,
+        "isHbl": true,
+        "label": "Rexel Super Cup 2026 M"
+    },
+    {
+        "tournamentId": 228,
+        "seasonId": 1738,
+        "isHbl": false,
+        "label": "Bundesliga F"
+    },
+    {
+        "tournamentId": 312,
+        "seasonId": 1739,
+        "isHbl": false,
+        "label": "2. Bundesliga F"
+    },
+    {
+        "tournamentId": 1737,
+        "seasonId": 1741,
+        "isHbl": false,
+        "label": "DHB-Pokal F"
+    },
+    {
+        "tournamentId": 6464,
+        "seasonId": 1740,
+        "isHbl": false,
+        "label": "Rexel Super Cup 2026 F"
+    }
+]

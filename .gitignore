@@ -62,3 +62,5 @@ server/data/
 # Reference documentation PDFs (not tracked)
 *.pdf
 server/server/
+dist/
+data/
