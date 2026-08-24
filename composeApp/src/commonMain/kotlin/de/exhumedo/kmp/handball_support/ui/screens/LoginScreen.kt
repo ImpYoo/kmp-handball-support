@@ -34,6 +34,7 @@ fun LoginScreen(
             DhbHeader(
                 title = "Handball Support",
                 subtitle = "Performance Evaluation Voting",
+                onLogoClick = onBackToPhases,
             )
             Box(
                 modifier = Modifier

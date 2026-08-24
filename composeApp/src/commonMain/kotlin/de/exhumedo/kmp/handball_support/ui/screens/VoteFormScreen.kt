@@ -35,6 +35,7 @@ fun VoteFormScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             DhbHeader(
                 title = "Vote Submission",
+                onLogoClick = onBack,
                 actions = {
                     DhbButton(onClick = onBack) {
                         Text("Back")

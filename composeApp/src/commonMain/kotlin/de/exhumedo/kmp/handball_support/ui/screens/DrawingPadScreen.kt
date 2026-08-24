@@ -83,6 +83,7 @@ fun DrawingPadScreen(onNavigateHome: () -> Unit) {
             DhbHeader(
                 title = "Notizblock",
                 subtitle = "Zeichenfläche",
+                onLogoClick = onNavigateHome,
                 actions = {
                     DhbButton(onClick = onNavigateHome) { Text("Menü") }
                 },

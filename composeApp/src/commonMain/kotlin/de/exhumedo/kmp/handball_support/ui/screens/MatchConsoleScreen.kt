@@ -35,6 +35,7 @@ fun MatchConsoleScreen(
             DhbHeader(
                 title = "Spieluhr & Anzeigetafel",
                 subtitle = "Zeitnahme und Spielstand",
+                onLogoClick = onNavigateHome,
                 actions = {
                     DhbButton(onClick = onNavigateHome) { Text("Menü") }
                 },

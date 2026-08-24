@@ -10,14 +10,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -76,6 +81,7 @@ fun TacticBoardScreen(
             DhbHeader(
                 title = "Taktiktafel",
                 subtitle = if (rotated) "Handball 20 × 40 m" else "Handball 40 × 20 m",
+                onLogoClick = onNavigateHome,
                 actions = {
                     DhbButton(onClick = { rotated = !rotated }) {
                         Text(if (rotated) "Querformat" else "Hochformat")
@@ -88,6 +94,82 @@ fun TacticBoardScreen(
                     DhbButton(onClick = onNavigateHome) { Text("Menü") }
                 },
             )
+
+            // ── Debug panel (above the field) ─────────────────────────
+            val homeTokens = presenter.tokens.filter { it.type == TokenType.HOME }
+            val guestTokens = presenter.tokens.filter { it.type == TokenType.GUEST }
+            val homePosText = homeTokens.joinToString("\n") {
+                "${it.label}: x=${it.fieldX}, y=${it.fieldY}"
+            }
+            val guestPosText = guestTokens.joinToString("\n") {
+                "${it.label}: x=${it.fieldX}, y=${it.fieldY}"
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(4.dp)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 4.dp)
+                        .background(Color.Black.copy(alpha = 0.85f))
+                        .padding(6.dp),
+                ) {
+                    Text("HOME", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = homePosText,
+                        onValueChange = {},
+                        readOnly = true,
+                        textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    var homeInput by remember { mutableStateOf("") }
+                    OutlinedTextField(
+                        value = homeInput,
+                        onValueChange = { homeInput = it },
+                        label = { Text("Paste Home", color = Color.White, style = MaterialTheme.typography.labelSmall) },
+                        textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    DhbButton(onClick = {
+                        applyPositions(homeInput, presenter, TokenType.HOME)
+                        homeInput = ""
+                    }) {
+                        Text("Apply Home", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 4.dp)
+                        .background(Color.Black.copy(alpha = 0.85f))
+                        .padding(6.dp),
+                ) {
+                    Text("GUEST", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = guestPosText,
+                        onValueChange = {},
+                        readOnly = true,
+                        textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    var guestInput by remember { mutableStateOf("") }
+                    OutlinedTextField(
+                        value = guestInput,
+                        onValueChange = { guestInput = it },
+                        label = { Text("Paste Guest", color = Color.White, style = MaterialTheme.typography.labelSmall) },
+                        textStyle = MaterialTheme.typography.labelSmall.copy(color = Color.White),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    DhbButton(onClick = {
+                        applyPositions(guestInput, presenter, TokenType.GUEST)
+                        guestInput = ""
+                    }) {
+                        Text("Apply Guest", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
 
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val boxW = constraints.maxWidth.toFloat()
@@ -342,6 +424,25 @@ private fun TacticBoardScreenPreview() {
         presenter = remember { TacticBoardPresenter() },
         onNavigateHome = {},
     )
+}
+
+/**
+ * Parses pasted position text (one token per line: "LABEL: x=FLOAT, y=FLOAT")
+ * and applies the coordinates to the matching tokens of [tokenType].
+ */
+private fun applyPositions(input: String, presenter: TacticBoardPresenter, tokenType: TokenType) {
+    val regex = Regex("""(\S+):\s*x=([\d.]+),\s*y=([\d.]+)""")
+    input.lineSequence().forEach { line ->
+        val match = regex.find(line) ?: return@forEach
+        val label = match.groupValues[1]
+        val x = match.groupValues[2].toFloatOrNull() ?: return@forEach
+        val y = match.groupValues[3].toFloatOrNull() ?: return@forEach
+        val token = presenter.tokens.firstOrNull { it.type == tokenType && it.label == label } ?: return@forEach
+        // Move token to exact position by computing delta from current
+        val dx = x - token.fieldX
+        val dy = y - token.fieldY
+        presenter.moveToken(token.id, dx, dy)
+    }
 }
 
 

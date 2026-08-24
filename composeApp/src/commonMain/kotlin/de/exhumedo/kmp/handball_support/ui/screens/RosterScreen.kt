@@ -101,6 +101,7 @@ fun RosterScreen(
             DhbHeader(
                 title = "Aufstellungen",
                 subtitle = "Heim- und Gastmannschaft",
+                onLogoClick = onNavigateHome,
                 actions = {
                     DhbButton(onClick = roster::reset) { Text("Zurücksetzen") }
                     Spacer(Modifier.width(Dimens.spaceSm))

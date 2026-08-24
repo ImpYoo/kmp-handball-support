@@ -50,6 +50,7 @@ fun PhasesScreen(
             DhbHeader(
                 title = "Handball Support",
                 subtitle = if (presenter.token != null) "Logged in as ${presenter.role}" else "Not logged in",
+                onLogoClick = onNavigateHome,
                 actions = {
                     DhbButton(onClick = onNavigateHome) {
                         Text("Menü")

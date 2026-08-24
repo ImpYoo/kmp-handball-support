@@ -2,6 +2,7 @@ package de.exhumedo.kmp.handball_support.ui.theme
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +36,7 @@ fun DhbHeader(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    onLogoClick: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
 ) {
     Surface(
@@ -50,7 +52,7 @@ fun DhbHeader(
                     .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceMd),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DhbBrandMark()
+                DhbBrandMark(onLogoClick = onLogoClick)
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -80,16 +82,25 @@ fun DhbHeader(
     }
 }
 
-/** The official DHB logo used as the header brand mark. */
+/** The official DHB logo used as the header brand mark. Clickable when [onLogoClick] is provided. */
 @Composable
-private fun DhbBrandMark(modifier: Modifier = Modifier) {
+private fun DhbBrandMark(
+    modifier: Modifier = Modifier,
+    onLogoClick: (() -> Unit)? = null,
+) {
+    val baseModifier = modifier
+        .height(40.dp)
+        .width(70.dp)
+    val effectiveModifier = if (onLogoClick != null) {
+        baseModifier.clickable(onClick = onLogoClick)
+    } else {
+        baseModifier
+    }
     Image(
         painter = painterResource(Res.drawable.dhb_logo),
         contentDescription = "Deutscher Handballbund",
         contentScale = ContentScale.Fit,
-        modifier = modifier
-            .height(40.dp)
-            .width(70.dp),
+        modifier = effectiveModifier,
     )
 }
 

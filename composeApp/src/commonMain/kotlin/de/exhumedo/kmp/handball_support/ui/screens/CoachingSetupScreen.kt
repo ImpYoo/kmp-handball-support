@@ -62,6 +62,7 @@ fun CoachingSetupScreen(
             DhbHeader(
                 title = "Coaching vorbereiten",
                 subtitle = "Mannschaften, Schiedsrichter und Aufstellungen",
+                onLogoClick = onNavigateHome,
                 actions = {
                     DhbButton(onClick = onNavigateHome) { Text("Menü") }
                 },

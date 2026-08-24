@@ -98,6 +98,7 @@ fun MatchSetupScreen(
             DhbHeader(
                 title = "Spieldaten",
                 subtitle = "Mannschaften und Schiedsrichter",
+                onLogoClick = onNavigateHome,
                 actions = {
                     DhbButton(onClick = setup::reset) { Text("Zurücksetzen") }
                     Spacer(Modifier.width(Dimens.spaceSm))

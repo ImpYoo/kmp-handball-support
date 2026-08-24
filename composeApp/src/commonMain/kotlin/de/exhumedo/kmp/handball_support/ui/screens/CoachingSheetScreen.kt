@@ -42,6 +42,7 @@ fun CoachingSheetScreen(
             DhbHeader(
                 title = "Coaching-Bogen",
                 subtitle = "HVNB Beobachterbogen",
+                onLogoClick = onNavigateHome,
                 actions = {
                     DhbButton(onClick = coaching::reset) { Text("Zurücksetzen") }
                     Spacer(Modifier.width(Dimens.spaceSm))

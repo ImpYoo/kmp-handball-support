@@ -59,6 +59,7 @@ fun CoachingSessionScreen(
             DhbHeader(
                 title = "Schiedsrichter-Coaching",
                 subtitle = sessionSubtitle(matchSetup),
+                onLogoClick = onNavigateHome,
                 actions = {
                     DhbButton(
                         onClick = {

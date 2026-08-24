@@ -37,6 +37,7 @@ fun PhaseDetailScreen(
             DhbHeader(
                 title = "Phase ${presenter.selectedPhaseId ?: "-"}",
                 subtitle = if (presenter.token != null) "Logged in as ${presenter.role}" else "Not logged in",
+                onLogoClick = onBack,
                 actions = {
                     DhbButton(onClick = onBack) {
                         Text("Back")
