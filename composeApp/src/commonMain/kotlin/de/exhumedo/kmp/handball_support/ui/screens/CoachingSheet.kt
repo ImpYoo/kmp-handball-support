@@ -204,6 +204,12 @@ private fun CriterionCard(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
+                    val groupsText = criterion.defectGroups.joinToString(", ") { it.name }
+                    Text(
+                        text = "($groupsText)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    )
                     Text(
                         text = if (markedCount == 0) "Tippen zum Aufklappen" else "$markedCount Fehler markiert",
                         style = MaterialTheme.typography.bodySmall,
