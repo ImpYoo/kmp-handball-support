@@ -40,22 +40,22 @@ class TacticBoardPresenter {
     fun reset() { tokens = defaultTokens() }
 
     private fun defaultTokens(): List<TacticToken> = buildList {
-        // Home – left half, attacking right
-        add(TacticToken("h0", "TW", TokenType.HOME,  1.5f, 10f))
-        add(TacticToken("h1", "LA", TokenType.HOME, 12f,   5f))
-        add(TacticToken("h2", "MI", TokenType.HOME, 14f,  10f))
-        add(TacticToken("h3", "RA", TokenType.HOME, 12f,  15f))
-        add(TacticToken("h4", "LL", TokenType.HOME,  8f,   2f))
-        add(TacticToken("h5", "RL", TokenType.HOME,  8f,  18f))
-        add(TacticToken("h6", "KR", TokenType.HOME, 17f,  10f))
-        // Guest – right half, attacking left
-        add(TacticToken("g0", "TW", TokenType.GUEST, 38.5f, 10f))
-        add(TacticToken("g1", "LA", TokenType.GUEST, 28f,   5f))
-        add(TacticToken("g2", "MI", TokenType.GUEST, 26f,  10f))
-        add(TacticToken("g3", "RA", TokenType.GUEST, 28f,  15f))
-        add(TacticToken("g4", "LL", TokenType.GUEST, 32f,   2f))
-        add(TacticToken("g5", "RL", TokenType.GUEST, 32f,  18f))
-        add(TacticToken("g6", "KR", TokenType.GUEST, 23f,  10f))
+        // Home – 6-0 defense on 6m arc
+        add(TacticToken("h0", "TW", TokenType.HOME,  1.5f, 10.0f))
+        add(TacticToken("h5", "1",  TokenType.HOME,  1.3262209f, 18.230385f))
+        add(TacticToken("h4", "2",  TokenType.HOME,  5.4000006f, 15.767547f))
+        add(TacticToken("h3", "3",  TokenType.HOME,  6.8887196f, 11.548767f))
+        add(TacticToken("h2", "4",  TokenType.HOME,  6.916339f,   8.378257f))
+        add(TacticToken("h1", "5",  TokenType.HOME,  5.0866833f,  3.762579f))
+        add(TacticToken("h6", "6",  TokenType.HOME,  1.2235881f,  1.6758004f))
+        // Guest – attacking on 9m arc, mirrored names
+        add(TacticToken("g0", "TW", TokenType.GUEST, 38.5f, 10.0f))
+        add(TacticToken("g3", "LA", TokenType.GUEST,  6.8947606f, 18.956158f))
+        add(TacticToken("g1", "RA", TokenType.GUEST,  6.7433944f,  0.99583316f))
+        add(TacticToken("g2", "RM", TokenType.GUEST, 12.283315f,   9.829164f))
+        add(TacticToken("g6", "KR", TokenType.GUEST,  7.7708316f,  9.962512f))
+        add(TacticToken("g5", "RL", TokenType.GUEST, 10.750196f,  15.009657f))
+        add(TacticToken("g4", "RR", TokenType.GUEST, 10.750834f,   5.2133274f))
         // Ball
         add(TacticToken("ball", "", TokenType.BALL, 20f, 10f))
         // Referees
