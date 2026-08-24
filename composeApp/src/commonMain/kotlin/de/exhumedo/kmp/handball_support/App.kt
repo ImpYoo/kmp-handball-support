@@ -143,7 +143,11 @@ fun App() {
                         ApplicationSelectionScreen(
                             onOpenPhases = {
                                 navigator.navigate(
-                                    phasesPath(presenter.filterDay, presenter.filterMonth, presenter.filterYear),
+                                    AppRoute.Phases(
+                                        day = presenter.filterDay,
+                                        month = presenter.filterMonth,
+                                        year = presenter.filterYear,
+                                    ),
                                 )
                             },
                             onOpenCoaching = { navigator.navigate(AppRoute.RefereeCoaching) },
@@ -241,7 +245,11 @@ fun App() {
                                             )
                                         else ->
                                             navigator.navigate(
-                                                phasesPath(presenter.filterDay, presenter.filterMonth, presenter.filterYear),
+                                                AppRoute.Phases(
+                                                    day = presenter.filterDay,
+                                                    month = presenter.filterMonth,
+                                                    year = presenter.filterYear,
+                                                ),
                                             )
                                     }
                                 }
@@ -249,7 +257,11 @@ fun App() {
                             onBackToPhases = {
                                 presenter.cancelPendingVote()
                                 navigator.navigate(
-                                    phasesPath(presenter.filterDay, presenter.filterMonth, presenter.filterYear),
+                                    AppRoute.Phases(
+                                        day = presenter.filterDay,
+                                        month = presenter.filterMonth,
+                                        year = presenter.filterYear,
+                                    ),
                                 )
                             },
                         )
@@ -288,7 +300,11 @@ fun App() {
                             onBack = {
                                 presenter.selectedMatch = null
                                 navigator.navigate(
-                                    phasesPath(presenter.filterDay, presenter.filterMonth, presenter.filterYear),
+                                    AppRoute.Phases(
+                                        day = presenter.filterDay,
+                                        month = presenter.filterMonth,
+                                        year = presenter.filterYear,
+                                    ),
                                 )
                             },
                             onMatchSelected = { match ->
@@ -356,7 +372,11 @@ fun App() {
                                     )
                                 } else {
                                     navigator.navigate(
-                                        phasesPath(presenter.filterDay, presenter.filterMonth, presenter.filterYear),
+                                        AppRoute.Phases(
+                                            day = presenter.filterDay,
+                                            month = presenter.filterMonth,
+                                            year = presenter.filterYear,
+                                        ),
                                     )
                                 }
                             },
