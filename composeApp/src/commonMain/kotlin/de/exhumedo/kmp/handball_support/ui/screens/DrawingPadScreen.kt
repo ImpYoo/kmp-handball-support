@@ -105,7 +105,7 @@ fun DrawingPadScreen(
 
     // Persist whenever strokes change (new stroke, undo, clear will trigger this).
     DisposableEffect(strokes.toList()) {
-        if (strokes.isNotEmpty()) storage.save(strokes.toList().serialize()) else storage.clear()
+        if (strokes.isNotEmpty()) storage.save(strokes.toList().serialize())
         onDispose { }
     }
 
