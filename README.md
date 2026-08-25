@@ -200,9 +200,11 @@ Production build examples:
 ./gradlew :composeApp:wasmJsBrowserProductionWebpack -PappVariant=rating
 ```
 
-The variant is implemented as compile-time `expect/actual` flags in
-`composeApp/src/commonMain/kotlin/de/exhumedo/kmp/handball_support/config/AppVariant.kt`.
-The compiler strips unreachable routes and Compose screens from each build.
+The variant is implemented as a build-time generated `AppVariant.kt` in
+`composeApp/build/generated/appVariant/kotlin/...`. `AppVariant.kt` exposes
+compile-time `const val` Booleans that control which tiles and routes are
+included. Because these are constants, the Kotlin compiler strips unreachable
+screens and routes from each build.
 
 ### Build and Run iOS Application
 

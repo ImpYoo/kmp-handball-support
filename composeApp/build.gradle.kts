@@ -18,6 +18,60 @@ require(appVariant in setOf("full", "coaching", "rating")) {
     "Invalid appVariant '$appVariant'. Allowed: full, coaching, rating"
 }
 
+val generateAppVariant = tasks.register("generateAppVariant") {
+    group = "build"
+    description = "Generates AppVariant.kt for the active appVariant"
+    val outputDir = layout.buildDirectory.dir("generated/appVariant/kotlin")
+    inputs.property("appVariant", appVariant)
+    outputs.dir(outputDir)
+    doLast {
+        val file = outputDir.get().asFile.resolve("de/exhumedo/kmp/handball_support/config/AppVariant.kt")
+        file.parentFile.mkdirs()
+        val values = when (inputs.properties["appVariant"]) {
+            "coaching" -> listOf(
+                "showRating" to "false",
+                "showRefereeCoaching" to "true",
+                "showCoachingSheet" to "false",
+                "showMatchConsole" to "false",
+                "showRoster" to "false",
+                "showMatchSetup" to "false",
+                "showDrawingPad" to "true",
+                "showTacticBoard" to "true",
+            )
+            "rating" -> listOf(
+                "showRating" to "true",
+                "showRefereeCoaching" to "false",
+                "showCoachingSheet" to "false",
+                "showMatchConsole" to "false",
+                "showRoster" to "false",
+                "showMatchSetup" to "false",
+                "showDrawingPad" to "false",
+                "showTacticBoard" to "false",
+            )
+            else -> listOf(
+                "showRating" to "true",
+                "showRefereeCoaching" to "true",
+                "showCoachingSheet" to "true",
+                "showMatchConsole" to "true",
+                "showRoster" to "true",
+                "showMatchSetup" to "true",
+                "showDrawingPad" to "true",
+                "showTacticBoard" to "true",
+            )
+        }
+        file.writeText(
+            """
+            |package de.exhumedo.kmp.handball_support.config
+            |
+            |/** Compile-time feature flags for the active build variant. */
+            |internal object AppVariant {
+${values.joinToString("\n") { (k, v) -> "            |    const val $k: Boolean = $v" }.prependIndent()}
+            |}
+            """.trimMargin()
+        )
+    }
+}
+
 kotlin {
     androidTarget {
         compilerOptions {
@@ -49,30 +103,6 @@ kotlin {
     }
 
     sourceSets {
-        // Shared compile-time variant source set layered on top of commonMain
-        val commonMain by getting
-        val commonMainCoaching by creating { dependsOn(commonMain) }
-        val commonMainRating by creating { dependsOn(commonMain) }
-        val commonMainFull by creating { dependsOn(commonMain) }
-
-        when (appVariant) {
-            "coaching" -> {
-                listOf("androidMain", "iosMain", "jvmMain", "jsMain", "wasmJsMain").forEach { target ->
-                    getByName(target).dependsOn(commonMainCoaching)
-                }
-            }
-            "rating" -> {
-                listOf("androidMain", "iosMain", "jvmMain", "jsMain", "wasmJsMain").forEach { target ->
-                    getByName(target).dependsOn(commonMainRating)
-                }
-            }
-            else -> {
-                listOf("androidMain", "iosMain", "jvmMain", "jsMain", "wasmJsMain").forEach { target ->
-                    getByName(target).dependsOn(commonMainFull)
-                }
-            }
-        }
-
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
@@ -110,6 +140,11 @@ kotlin {
         webMain.dependencies {
             implementation(libs.ktor.client.js.mpp)
         }
+    }
+
+    // Make all source sets depend on the generated AppVariant.kt.
+    sourceSets.commonMain {
+        kotlin.srcDir(generateAppVariant.map { it.outputs.files.singleFile })
     }
 }
 
