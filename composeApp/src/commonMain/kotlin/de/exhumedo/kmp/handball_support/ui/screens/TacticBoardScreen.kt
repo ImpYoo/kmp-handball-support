@@ -84,14 +84,13 @@ fun TacticBoardScreen(
 ) {
     var rotated by remember { mutableStateOf(false) }
 
-    // Restore saved token positions on first composition.
-    DisposableEffect(Unit) {
+    // Restore saved token positions synchronously during composition so the
+    // board shows the saved layout on first frame and survives navigation.
+    remember(storage) {
         storage.read()?.let { presenter.restore(it) }
-        onDispose { }
     }
 
-    // Persist positions after every drag ends. We use a snapshot that changes when
-    // any token moves (triggered via presenter.tokens recompositions).
+    // Persist positions after every drag ends.
     val tokenHash = presenter.tokens.hashCode()
     DisposableEffect(tokenHash) {
         storage.save(presenter.serialize())

@@ -93,17 +93,17 @@ fun DrawingPadScreen(
     storage: DrawingStorage = drawingStorage(),
     onNavigateHome: () -> Unit,
 ) {
-    val strokes = remember { mutableStateListOf<DrawnStroke>() }
+    // Load saved strokes synchronously during composition so they are present
+    // before the first frame and survive navigation away/back.
+    val strokes = remember(storage) {
+        mutableStateListOf<DrawnStroke>().apply {
+            addAll(storage.read()?.deserializeStrokes() ?: emptyList())
+        }
+    }
     var currentColor by remember { mutableStateOf(Color.Black) }
     var strokeWidth by remember { mutableStateOf(4f) }
 
-    // Load saved strokes on first composition.
-    DisposableEffect(Unit) {
-        storage.read()?.let { strokes.addAll(it.deserializeStrokes()) }
-        onDispose { }
-    }
-
-    // Persist whenever strokes change (new stroke, undo, clear will trigger this).
+    // Persist whenever strokes change.
     DisposableEffect(strokes.toList()) {
         if (strokes.isNotEmpty()) storage.save(strokes.toList().serialize())
         onDispose { }
