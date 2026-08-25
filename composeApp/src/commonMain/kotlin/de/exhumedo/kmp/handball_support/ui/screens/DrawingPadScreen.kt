@@ -28,12 +28,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import de.exhumedo.kmp.handball_support.persistence.DrawingStorage
+import de.exhumedo.kmp.handball_support.persistence.drawingStorage
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,15 +71,43 @@ private val PaletteColors = listOf(
     Color.White,
 )
 
+
+private fun DrawnStroke.toSerializable(): SerializableStroke =
+    SerializableStroke(points.map { SerializablePoint(it.x, it.y) }, color.value.toLong(), strokeWidthDp)
+
+private fun SerializableStroke.toDrawnStroke(): DrawnStroke =
+    DrawnStroke(points.map { Offset(it.x, it.y) }, Color(color), strokeWidthDp)
+
+private fun List<DrawnStroke>.serialize(): String =
+    kotlinx.serialization.json.Json.encodeToString(SerializableStrokeList.serializer(), SerializableStrokeList(map { it.toSerializable() }))
+
+private fun String.deserializeStrokes(): List<DrawnStroke> =
+    runCatching { kotlinx.serialization.json.Json.decodeFromString(SerializableStrokeList.serializer(), this).strokes.map { it.toDrawnStroke() } }.getOrElse { emptyList() }
+
 /**
  * Full-screen drawing pad: draw with finger/mouse, choose color and stroke width,
  * undo the last stroke, and clear everything.
  */
 @Composable
-fun DrawingPadScreen(onNavigateHome: () -> Unit) {
+fun DrawingPadScreen(
+    storage: DrawingStorage = drawingStorage(),
+    onNavigateHome: () -> Unit,
+) {
     val strokes = remember { mutableStateListOf<DrawnStroke>() }
     var currentColor by remember { mutableStateOf(Color.Black) }
     var strokeWidth by remember { mutableStateOf(4f) }
+
+    // Load saved strokes on first composition.
+    DisposableEffect(Unit) {
+        storage.read()?.let { strokes.addAll(it.deserializeStrokes()) }
+        onDispose { }
+    }
+
+    // Persist whenever strokes change (new stroke, undo, clear will trigger this).
+    DisposableEffect(strokes.toList()) {
+        if (strokes.isNotEmpty()) storage.save(strokes.toList().serialize()) else storage.clear()
+        onDispose { }
+    }
 
     AppTheme {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -116,7 +147,10 @@ fun DrawingPadScreen(onNavigateHome: () -> Unit) {
                         }
                         // Clear all
                         DhbButton(
-                            onClick = { strokes.clear() },
+                            onClick = {
+                                strokes.clear()
+                                storage.clear()
+                            },
                             enabled = strokes.isNotEmpty(),
                         ) {
                             Icon(Icons.Filled.Delete, contentDescription = "Alles löschen")
@@ -247,8 +281,17 @@ fun DrawingPadScreen(onNavigateHome: () -> Unit) {
 @Preview
 @Composable
 private fun DrawingPadScreenPreview() {
-    DrawingPadScreen(onNavigateHome = {})
+    DrawingPadScreen(storage = de.exhumedo.kmp.handball_support.persistence.InMemoryDrawingStorage(), onNavigateHome = {})
 }
+
+@kotlinx.serialization.Serializable
+private data class SerializablePoint(val x: Float, val y: Float)
+
+@kotlinx.serialization.Serializable
+private data class SerializableStroke(val points: List<SerializablePoint>, val color: Long, val strokeWidthDp: Float)
+
+@kotlinx.serialization.Serializable
+private data class SerializableStrokeList(val strokes: List<SerializableStroke>)
 
 
 

@@ -206,6 +206,10 @@ compile-time `const val` Booleans that control which tiles and routes are
 included. Because these are constants, the Kotlin compiler strips unreachable
 screens and routes from each build.
 
+The Notizblock strokes and Taktiktafel token positions are persisted to
+`localStorage` (web) or disk (JVM desktop) and restored until the user clears
+them with the trash/reset button.
+
 ### Build and Run iOS Application
 
 To build and run the development version of the iOS app, use the run configuration from the run widget

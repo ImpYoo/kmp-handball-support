@@ -20,7 +20,6 @@ data class TacticToken(
  */
 class TacticBoardPresenter {
     var tokens by mutableStateOf(defaultTokens())
-        private set
 
     fun moveToken(id: String, deltaFieldX: Float, deltaFieldY: Float) {
         tokens = tokens.map { token ->
