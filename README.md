@@ -60,6 +60,10 @@ in your IDE’s toolbar or run it directly from the terminal:
   .\gradlew.bat :server:run
   ```
 
+The default server port is `8080`. The current local setup runs on `8090` because port `8080`
+is already used by an unrelated local project (`skyjo-backend`). Set `SERVER_PORT=8090` to replicate
+this environment.
+
 ### Server First Startup
 
 The server now manages API users itself and stores them in `server/data/auth-users.json`.
@@ -124,6 +128,8 @@ Before exposing the server to the public internet, make sure that:
   first successful start (delete the env var; the bootstrap is only used when the auth
   user file is empty).
 - `CORS_ALLOWED_ORIGINS` only lists the public hosts of your frontend(s).
+- `APP_DEVELOPMENT` is `false` in production. The server will otherwise fall back to a
+  known development JWT secret, which is insecure for public exposure.
 - `EXTERNAL_API_KEY` is the real Sportradar key. The server refuses to start with a
   placeholder value (e.g. `YOUR_API_KEY_HERE`) when `EXTERNAL_API_ENABLED=true`.
 - The `server/data/*.json` files are stored on persistent, backed-up storage with
@@ -131,7 +137,20 @@ Before exposing the server to the public internet, make sure that:
   passwords and audit-relevant data).
 - The server is fronted by HTTPS-terminating infrastructure (e.g. a reverse proxy);
   the embedded Netty server serves plain HTTP only.
+- JSON persistence is a short-term choice. Replace it with SQLite or PostgreSQL before
+  the deployment grows beyond a single-node setup.
 
+### Production web deployment (coaching-only)
+
+For the coaching-only flow the backend is not needed. Build the web client and serve the
+static files:
+
+```shell
+./gradlew :composeApp:wasmJsBrowserProductionWebpack
+```
+
+Then serve `composeApp/build/kotlin-webpack/wasmJs/productionExecutable/` plus
+`composeResources/` with any static file host or CDN.
 
 ### Build and Run Web Application
 

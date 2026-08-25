@@ -324,3 +324,4 @@ Test coverage:
 - **Config**: `ExternalApiConfig` in `config/AppConfig.kt`
 - **Examples**: `configureSportradarApiRoutes()` in `api/example/ExternalApiExampleRoutes.kt`
 - **Tests**: `SportradarExternalApiGatewayTest.kt`
+- **Tournament registry**: `server/data/tournaments.json` — must contain `TournamentConfig` entries with `id`, `seasonId`, and optional `name`/`description`
