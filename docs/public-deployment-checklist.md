@@ -48,7 +48,9 @@ Verify in release builds that `localhost` is **not** the value being served.
 1. Move auth users and evaluations to a database inside Docker Compose (SQLite is a pragmatic first step; PostgreSQL for multi-node).
 2. Put the app behind Traefik, Nginx, or another reverse proxy with TLS.
 3. Store `JWT_SECRET` in Docker secrets or another secret manager.
-4. If only the "Spielbewertung" module is needed on the VPS, build a stripped Compose app with only the voting routes and hide/disable the coaching modules.
+4. If only the "Spielbewertung" module is needed on the VPS, build the `rating` variant with
+   `./gradlew :composeApp:wasmJsBrowserProductionWebpack -PappVariant=rating` and deploy only
+   the voting frontend plus the Ktor backend.
 5. Add automated backups for SQLite/JSON persistence and test restore procedures.
 6. Ship audit logs to a central sink.
 7. Add monitoring and alerting for failed logins, 5xx errors, and startup failures.

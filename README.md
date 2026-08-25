@@ -176,6 +176,34 @@ in your IDE's toolbar or run it directly from the terminal:
       .\gradlew.bat :composeApp:jsBrowserDevelopmentRun
       ```
 
+### Build flavors
+
+The Compose app can be built in three compile-time variants to control which modules are included.
+The variant is selected with `-PappVariant=...`:
+
+| Variant | Included modules |
+|---|---|
+| `full` (default) | All modules: Spielbewertung, Schiedsrichter-Coaching, Coaching-Bogen, Spieluhr, Aufstellungen, Spieldaten, Notizblock, Taktiktafel |
+| `coaching` | Schiedsrichter-Coaching, Coaching-Bogen, Spieluhr, Aufstellungen, Spieldaten, Notizblock, Taktiktafel — no rating backend needed |
+| `rating` | Only Spielbewertung (phases, match details, login, vote) — intended for the public VPS |
+
+Production build examples:
+
+```shell
+# Full build (all modules)
+./gradlew :composeApp:wasmJsBrowserProductionWebpack
+
+# Coaching-only build
+./gradlew :composeApp:wasmJsBrowserProductionWebpack -PappVariant=coaching
+
+# Rating-only build
+./gradlew :composeApp:wasmJsBrowserProductionWebpack -PappVariant=rating
+```
+
+The variant is implemented as compile-time `expect/actual` flags in
+`composeApp/src/commonMain/kotlin/de/exhumedo/kmp/handball_support/config/AppVariant.kt`.
+The compiler strips unreachable routes and Compose screens from each build.
+
 ### Build and Run iOS Application
 
 To build and run the development version of the iOS app, use the run configuration from the run widget

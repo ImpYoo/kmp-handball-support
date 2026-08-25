@@ -23,6 +23,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import de.exhumedo.kmp.handball_support.coaching.CoachingHistoryPresenter
 import de.exhumedo.kmp.handball_support.coaching.RefereeCoachingPresenter
+import de.exhumedo.kmp.handball_support.config.AppVariant
 import de.exhumedo.kmp.handball_support.matchconsole.MatchSetupPresenter
 import de.exhumedo.kmp.handball_support.matchconsole.RosterPresenter
 import de.exhumedo.kmp.handball_support.matchconsole.ScoreboardPresenter
@@ -160,81 +161,30 @@ fun App() {
                         )
                     }
 
-                    composable<AppRoute.Phases> { entry ->
-                        val route = entry.toRoute<AppRoute.Phases>()
-                        LaunchedEffect(route.day, route.month, route.year) {
-                            presenter.setDateFilter(day = route.day, month = route.month, year = route.year)
-                        }
-
-                        // Reflect filter changes made from the UI in the URL.
-                        LaunchedEffect(presenter.filterDay, presenter.filterMonth, presenter.filterYear) {
-                            val day = presenter.filterDay
-                            val month = presenter.filterMonth
-                            val year = presenter.filterYear
-                            if (day != route.day || month != route.month || year != route.year) {
-                                navigator.navigate(AppRoute.Phases(day, month, year, route.showFilter))
+                    if (AppVariant.showRating) {
+                        composable<AppRoute.Phases> { entry ->
+                            val route = entry.toRoute<AppRoute.Phases>()
+                            LaunchedEffect(route.day, route.month, route.year) {
+                                presenter.setDateFilter(day = route.day, month = route.month, year = route.year)
                             }
-                        }
 
-                        PhasesScreen(
-                            showFilter = route.showFilter,
-                            presenter = presenter,
-                            onAction = { action ->
-                                scope.launch {
-                                    action()
-                                    presenter.selectedPhaseId?.let { phaseId ->
-                                        navigator.navigate(
-                                            AppRoute.PhaseDetail(
-                                                phaseId = phaseId,
-                                                day = presenter.filterDay,
-                                                month = presenter.filterMonth,
-                                                year = presenter.filterYear,
-                                            ),
-                                        )
-                                    }
+                            // Reflect filter changes made from the UI in the URL.
+                            LaunchedEffect(presenter.filterDay, presenter.filterMonth, presenter.filterYear) {
+                                val day = presenter.filterDay
+                                val month = presenter.filterMonth
+                                val year = presenter.filterYear
+                                if (day != route.day || month != route.month || year != route.year) {
+                                    navigator.navigate(AppRoute.Phases(day, month, year, route.showFilter))
                                 }
-                            },
-                            onNavigateHome = {
-                                navigator.navigate(AppRoute.Home)
-                            },
-                        )
-                    }
-
-                    composable<AppRoute.Login> { entry ->
-                        val login = entry.toRoute<AppRoute.Login>()
-
-                        LaunchedEffect(login.day, login.month, login.year) {
-                            presenter.setDateFilter(day = login.day, month = login.month, year = login.year)
-                        }
-
-                        // Restore pending-vote target from the URL so a refresh on /login keeps
-                        // the user heading to the right Vote screen after sign-in.
-                        LaunchedEffect(login.phaseId, login.matchId) {
-                            if (login.phaseId != null && login.matchId != null) {
-                                presenter.markVotePending(login.phaseId, login.matchId)
                             }
-                        }
 
-                        LoginScreen(
-                            presenter = presenter,
-                            onAction = { action ->
-                                scope.launch {
-                                    action()
-                                    if (presenter.token == null) return@launch
-                                    val phaseId = presenter.selectedPhaseId ?: login.phaseId
-                                    val matchId = presenter.selectedMatch?.id ?: login.matchId
-                                    when {
-                                        phaseId != null && matchId != null ->
-                                            navigator.navigate(
-                                                AppRoute.Vote(
-                                                    phaseId = phaseId,
-                                                    matchId = matchId,
-                                                    day = presenter.filterDay,
-                                                    month = presenter.filterMonth,
-                                                    year = presenter.filterYear,
-                                                ),
-                                            )
-                                        phaseId != null ->
+                            PhasesScreen(
+                                showFilter = route.showFilter,
+                                presenter = presenter,
+                                onAction = { action ->
+                                    scope.launch {
+                                        action()
+                                        presenter.selectedPhaseId?.let { phaseId ->
                                             navigator.navigate(
                                                 AppRoute.PhaseDetail(
                                                     phaseId = phaseId,
@@ -243,134 +193,71 @@ fun App() {
                                                     year = presenter.filterYear,
                                                 ),
                                             )
-                                        else ->
-                                            navigator.navigate(
-                                                AppRoute.Phases(
-                                                    day = presenter.filterDay,
-                                                    month = presenter.filterMonth,
-                                                    year = presenter.filterYear,
-                                                ),
-                                            )
+                                        }
                                     }
+                                },
+                                onNavigateHome = {
+                                    navigator.navigate(AppRoute.Home)
+                                },
+                            )
+                        }
+
+                        composable<AppRoute.Login> { entry ->
+                            val login = entry.toRoute<AppRoute.Login>()
+
+                            LaunchedEffect(login.day, login.month, login.year) {
+                                presenter.setDateFilter(day = login.day, month = login.month, year = login.year)
+                            }
+
+                            // Restore pending-vote target from the URL so a refresh on /login keeps
+                            // the user heading to the right Vote screen after sign-in.
+                            LaunchedEffect(login.phaseId, login.matchId) {
+                                if (login.phaseId != null && login.matchId != null) {
+                                    presenter.markVotePending(login.phaseId, login.matchId)
                                 }
-                            },
-                            onBackToPhases = {
-                                presenter.cancelPendingVote()
-                                navigator.navigate(
-                                    AppRoute.Phases(
-                                        day = presenter.filterDay,
-                                        month = presenter.filterMonth,
-                                        year = presenter.filterYear,
-                                    ),
-                                )
-                            },
-                        )
-                    }
-
-                    composable<AppRoute.PhaseDetail> { entry ->
-                        val detail = entry.toRoute<AppRoute.PhaseDetail>()
-                        val phaseId = detail.phaseId
-
-                        LaunchedEffect(detail.day, detail.month, detail.year) {
-                            presenter.setDateFilter(day = detail.day, month = detail.month, year = detail.year)
-                        }
-
-                        LaunchedEffect(phaseId) {
-                            if (presenter.selectedPhaseId != phaseId || presenter.matches.isEmpty()) {
-                                presenter.openPhase(phaseId)
                             }
-                        }
 
-                        LaunchedEffect(presenter.pendingMatchId, presenter.token) {
-                            if (presenter.token == null && presenter.pendingMatchId != null) {
-                                navigator.navigate(
-                                    AppRoute.Login(
-                                        phaseId = presenter.pendingPhaseId,
-                                        matchId = presenter.pendingMatchId,
-                                        day = presenter.filterDay,
-                                        month = presenter.filterMonth,
-                                        year = presenter.filterYear,
-                                    ),
-                                )
-                            }
-                        }
-
-                        PhaseDetailScreen(
-                            presenter = presenter,
-                            onBack = {
-                                presenter.selectedMatch = null
-                                navigator.navigate(
-                                    AppRoute.Phases(
-                                        day = presenter.filterDay,
-                                        month = presenter.filterMonth,
-                                        year = presenter.filterYear,
-                                    ),
-                                )
-                            },
-                            onMatchSelected = { match ->
-                                if (presenter.token != null) {
-                                    navigator.navigate(
-                                        AppRoute.Vote(
-                                            phaseId = phaseId,
-                                            matchId = match.id,
-                                            day = presenter.filterDay,
-                                            month = presenter.filterMonth,
-                                            year = presenter.filterYear,
-                                        ),
-                                    )
-                                }
-                            },
-                        )
-                    }
-
-                    composable<AppRoute.Vote> { entry ->
-                        val route = entry.toRoute<AppRoute.Vote>()
-                        val phaseId = route.phaseId
-                        val matchId = route.matchId
-
-                        LaunchedEffect(route.day, route.month, route.year) {
-                            presenter.setDateFilter(day = route.day, month = route.month, year = route.year)
-                        }
-
-                        LaunchedEffect(phaseId, matchId, presenter.token) {
-                            if (presenter.selectedPhaseId != phaseId || presenter.matches.none { it.id == matchId }) {
-                                presenter.openPhase(phaseId)
-                            }
-                            val match = presenter.matches.firstOrNull { it.id == matchId } ?: return@LaunchedEffect
-                            if (presenter.token == null) {
-                                presenter.markVotePending(phaseId, matchId)
-                                navigator.navigate(
-                                    AppRoute.Login(
-                                        phaseId = phaseId,
-                                        matchId = matchId,
-                                        day = presenter.filterDay,
-                                        month = presenter.filterMonth,
-                                        year = presenter.filterYear,
-                                    ),
-                                )
-                                return@LaunchedEffect
-                            }
-                            if (presenter.selectedMatch?.id != matchId) {
-                                presenter.chooseMatch(match)
-                            }
-                        }
-
-                        VoteFormScreen(
-                            presenter = presenter,
-                            onAction = { action -> scope.launch { action() } },
-                            onBack = {
-                                val phaseRoute = presenter.selectedPhaseId
-                                presenter.selectedMatch = null
-                                if (phaseRoute != null) {
-                                    navigator.navigate(
-                                        AppRoute.PhaseDetail(
-                                            phaseId = phaseRoute,
-                                            day = presenter.filterDay,
-                                            month = presenter.filterMonth,
-                                            year = presenter.filterYear,
-                                        ),
-                                    )
-                                } else {
+                            LoginScreen(
+                                presenter = presenter,
+                                onAction = { action ->
+                                    scope.launch {
+                                        action()
+                                        if (presenter.token == null) return@launch
+                                        val phaseId = presenter.selectedPhaseId ?: login.phaseId
+                                        val matchId = presenter.selectedMatch?.id ?: login.matchId
+                                        when {
+                                            phaseId != null && matchId != null ->
+                                                navigator.navigate(
+                                                    AppRoute.Vote(
+                                                        phaseId = phaseId,
+                                                        matchId = matchId,
+                                                        day = presenter.filterDay,
+                                                        month = presenter.filterMonth,
+                                                        year = presenter.filterYear,
+                                                    ),
+                                                )
+                                            phaseId != null ->
+                                                navigator.navigate(
+                                                    AppRoute.PhaseDetail(
+                                                        phaseId = phaseId,
+                                                        day = presenter.filterDay,
+                                                        month = presenter.filterMonth,
+                                                        year = presenter.filterYear,
+                                                    ),
+                                                )
+                                            else ->
+                                                navigator.navigate(
+                                                    AppRoute.Phases(
+                                                        day = presenter.filterDay,
+                                                        month = presenter.filterMonth,
+                                                        year = presenter.filterYear,
+                                                    ),
+                                                )
+                                        }
+                                    }
+                                },
+                                onBackToPhases = {
+                                    presenter.cancelPendingVote()
                                     navigator.navigate(
                                         AppRoute.Phases(
                                             day = presenter.filterDay,
@@ -378,9 +265,125 @@ fun App() {
                                             year = presenter.filterYear,
                                         ),
                                     )
+                                },
+                            )
+                        }
+
+                        composable<AppRoute.PhaseDetail> { entry ->
+                            val detail = entry.toRoute<AppRoute.PhaseDetail>()
+                            val phaseId = detail.phaseId
+
+                            LaunchedEffect(detail.day, detail.month, detail.year) {
+                                presenter.setDateFilter(day = detail.day, month = detail.month, year = detail.year)
+                            }
+
+                            LaunchedEffect(phaseId) {
+                                if (presenter.selectedPhaseId != phaseId || presenter.matches.isEmpty()) {
+                                    presenter.openPhase(phaseId)
                                 }
-                            },
-                        )
+                            }
+
+                            LaunchedEffect(presenter.pendingMatchId, presenter.token) {
+                                if (presenter.token == null && presenter.pendingMatchId != null) {
+                                    navigator.navigate(
+                                        AppRoute.Login(
+                                            phaseId = presenter.pendingPhaseId,
+                                            matchId = presenter.pendingMatchId,
+                                            day = presenter.filterDay,
+                                            month = presenter.filterMonth,
+                                            year = presenter.filterYear,
+                                        ),
+                                    )
+                                }
+                            }
+
+                            PhaseDetailScreen(
+                                presenter = presenter,
+                                onBack = {
+                                    presenter.selectedMatch = null
+                                    navigator.navigate(
+                                        AppRoute.Phases(
+                                            day = presenter.filterDay,
+                                            month = presenter.filterMonth,
+                                            year = presenter.filterYear,
+                                        ),
+                                    )
+                                },
+                                onMatchSelected = { match ->
+                                    if (presenter.token != null) {
+                                        navigator.navigate(
+                                            AppRoute.Vote(
+                                                phaseId = phaseId,
+                                                matchId = match.id,
+                                                day = presenter.filterDay,
+                                                month = presenter.filterMonth,
+                                                year = presenter.filterYear,
+                                            ),
+                                        )
+                                    }
+                                },
+                            )
+                        }
+
+                        composable<AppRoute.Vote> { entry ->
+                            val route = entry.toRoute<AppRoute.Vote>()
+                            val phaseId = route.phaseId
+                            val matchId = route.matchId
+
+                            LaunchedEffect(route.day, route.month, route.year) {
+                                presenter.setDateFilter(day = route.day, month = route.month, year = route.year)
+                            }
+
+                            LaunchedEffect(phaseId, matchId, presenter.token) {
+                                if (presenter.selectedPhaseId != phaseId || presenter.matches.none { it.id == matchId }) {
+                                    presenter.openPhase(phaseId)
+                                }
+                                val match = presenter.matches.firstOrNull { it.id == matchId } ?: return@LaunchedEffect
+                                if (presenter.token == null) {
+                                    presenter.markVotePending(phaseId, matchId)
+                                    navigator.navigate(
+                                        AppRoute.Login(
+                                            phaseId = phaseId,
+                                            matchId = matchId,
+                                            day = presenter.filterDay,
+                                            month = presenter.filterMonth,
+                                            year = presenter.filterYear,
+                                        ),
+                                    )
+                                    return@LaunchedEffect
+                                }
+                                if (presenter.selectedMatch?.id != matchId) {
+                                    presenter.chooseMatch(match)
+                                }
+                            }
+
+                            VoteFormScreen(
+                                presenter = presenter,
+                                onAction = { action -> scope.launch { action() } },
+                                onBack = {
+                                    val phaseRoute = presenter.selectedPhaseId
+                                    presenter.selectedMatch = null
+                                    if (phaseRoute != null) {
+                                        navigator.navigate(
+                                            AppRoute.PhaseDetail(
+                                                phaseId = phaseRoute,
+                                                day = presenter.filterDay,
+                                                month = presenter.filterMonth,
+                                                year = presenter.filterYear,
+                                            ),
+                                        )
+                                    } else {
+                                        navigator.navigate(
+                                            AppRoute.Phases(
+                                                day = presenter.filterDay,
+                                                month = presenter.filterMonth,
+                                                year = presenter.filterYear,
+                                            ),
+                                        )
+                                    }
+                                },
+                            )
+                        }
                     }
 
                     composable<AppRoute.RefereeCoaching> {
@@ -428,56 +431,68 @@ fun App() {
                         )
                     }
 
-                    composable<AppRoute.MatchConsole> {
-                        MatchConsoleScreen(
-                            stopwatch = stopwatchPresenter,
-                            scoreboard = scoreboardPresenter,
-                            onNavigateHome = {
-                                navigator.navigate(AppRoute.Home)
-                            },
-                        )
+                    if (AppVariant.showMatchConsole) {
+                        composable<AppRoute.MatchConsole> {
+                            MatchConsoleScreen(
+                                stopwatch = stopwatchPresenter,
+                                scoreboard = scoreboardPresenter,
+                                onNavigateHome = {
+                                    navigator.navigate(AppRoute.Home)
+                                },
+                            )
+                        }
                     }
 
-                    composable<AppRoute.CoachingSheet> {
-                        CoachingSheetScreen(
-                            coaching = coachingPresenter,
-                            onNavigateHome = {
-                                navigator.navigate(AppRoute.Home)
-                            },
-                        )
+                    if (AppVariant.showCoachingSheet) {
+                        composable<AppRoute.CoachingSheet> {
+                            CoachingSheetScreen(
+                                coaching = coachingPresenter,
+                                onNavigateHome = {
+                                    navigator.navigate(AppRoute.Home)
+                                },
+                            )
+                        }
                     }
 
-                    composable<AppRoute.Roster> {
-                        RosterScreen(
-                            roster = rosterPresenter,
-                            onNavigateHome = {
-                                navigator.navigate(AppRoute.Home)
-                            },
-                        )
+                    if (AppVariant.showRoster) {
+                        composable<AppRoute.Roster> {
+                            RosterScreen(
+                                roster = rosterPresenter,
+                                onNavigateHome = {
+                                    navigator.navigate(AppRoute.Home)
+                                },
+                            )
+                        }
                     }
 
-                    composable<AppRoute.MatchSetup> {
-                        MatchSetupScreen(
-                            setup = matchSetupPresenter,
-                            onNavigateHome = {
-                                navigator.navigate(AppRoute.Home)
-                            },
-                        )
+                    if (AppVariant.showMatchSetup) {
+                        composable<AppRoute.MatchSetup> {
+                            MatchSetupScreen(
+                                setup = matchSetupPresenter,
+                                onNavigateHome = {
+                                    navigator.navigate(AppRoute.Home)
+                                },
+                            )
+                        }
                     }
 
-                    composable<AppRoute.DrawingPad> {
-                        DrawingPadScreen(
-                            onNavigateHome = { navigator.navigate(AppRoute.Home) },
-                        )
+                    if (AppVariant.showDrawingPad) {
+                        composable<AppRoute.DrawingPad> {
+                            DrawingPadScreen(
+                                onNavigateHome = { navigator.navigate(AppRoute.Home) },
+                            )
+                        }
                     }
 
-                    composable<AppRoute.TacticBoard> { entry ->
-                        val route = entry.toRoute<AppRoute.TacticBoard>()
-                        TacticBoardScreen(
-                            presenter = tacticBoardPresenter,
-                            debug = route.debug,
-                            onNavigateHome = { navigator.navigate(AppRoute.Home) },
-                        )
+                    if (AppVariant.showTacticBoard) {
+                        composable<AppRoute.TacticBoard> { entry ->
+                            val route = entry.toRoute<AppRoute.TacticBoard>()
+                            TacticBoardScreen(
+                                presenter = tacticBoardPresenter,
+                                debug = route.debug,
+                                onNavigateHome = { navigator.navigate(AppRoute.Home) },
+                            )
+                        }
                     }
                 }
                 // Loading overlay that appears on top of all content

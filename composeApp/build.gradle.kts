@@ -11,6 +11,13 @@ plugins {
     alias(libs.plugins.composeHotReload)
 }
 
+// App variant that controls which modules are compiled into the build.
+// Supported values: "full" | "coaching" | "rating"
+val appVariant = (project.findProperty("appVariant") as? String)?.lowercase() ?: "full"
+require(appVariant in setOf("full", "coaching", "rating")) {
+    "Invalid appVariant '$appVariant'. Allowed: full, coaching, rating"
+}
+
 kotlin {
     androidTarget {
         compilerOptions {
@@ -42,6 +49,30 @@ kotlin {
     }
 
     sourceSets {
+        // Shared compile-time variant source set layered on top of commonMain
+        val commonMain by getting
+        val commonMainCoaching by creating { dependsOn(commonMain) }
+        val commonMainRating by creating { dependsOn(commonMain) }
+        val commonMainFull by creating { dependsOn(commonMain) }
+
+        when (appVariant) {
+            "coaching" -> {
+                listOf("androidMain", "iosMain", "jvmMain", "jsMain", "wasmJsMain").forEach { target ->
+                    getByName(target).dependsOn(commonMainCoaching)
+                }
+            }
+            "rating" -> {
+                listOf("androidMain", "iosMain", "jvmMain", "jsMain", "wasmJsMain").forEach { target ->
+                    getByName(target).dependsOn(commonMainRating)
+                }
+            }
+            else -> {
+                listOf("androidMain", "iosMain", "jvmMain", "jsMain", "wasmJsMain").forEach { target ->
+                    getByName(target).dependsOn(commonMainFull)
+                }
+            }
+        }
+
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
@@ -95,7 +126,7 @@ android {
 
         val apiBaseUrl = (project.findProperty("apiBaseUrl") as? String)
             ?: System.getenv("API_BASE_URL")
-            ?: "http://10.0.2.2:8080"
+            ?: "http://10.0.2.2:8090"
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
     buildFeatures {

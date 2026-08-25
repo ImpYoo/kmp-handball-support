@@ -38,14 +38,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
+import de.exhumedo.kmp.handball_support.config.AppVariant
 import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
 import de.exhumedo.kmp.handball_support.ui.theme.DhbRed
 import de.exhumedo.kmp.handball_support.ui.theme.Dimens
 
 /**
  * Landing screen: lets the user choose which application to use. Each option is
- * rendered as a large, tappable tile. New applications can be added by appending
- * another [ApplicationTile].
+ * rendered as a large, tappable tile. The visible tiles depend on the compile-time
+ * [AppVariant] configuration so each build flavor only exposes its intended modules.
  */
 @Composable
 fun ApplicationSelectionScreen(
@@ -75,54 +76,70 @@ fun ApplicationSelectionScreen(
                         .padding(Dimens.spaceLg),
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
                 ) {
-                    ApplicationTile(
-                        title = "Spielbewertung",
-                        description = "Phasen und Spiele auswählen und Schiedsrichter bewerten.",
-                        accent = DhbRed,
-                        onClick = onOpenPhases,
-                    )
-                    ApplicationTile(
-                        title = "Schiedsrichter-Coaching",
-                        description = "Coaching-Sitzung mit Bogen, Spieluhr und Anzeigetafel.",
-                        accent = CoachingAccent,
-                        onClick = onOpenCoaching,
-                    )
-                    ApplicationTile(
-                        title = "Coaching-Bogen",
-                        description = "Nur den HVNB-Beobachterbogen ausfüllen, ohne Spieluhr.",
-                        accent = CoachingSheetAccent,
-                        onClick = onOpenCoachingSheet,
-                    )
-                    ApplicationTile(
-                        title = "Spieluhr & Anzeigetafel",
-                        description = "Zeit stoppen und den Spielstand von Heim und Gast führen.",
-                        accent = MatchConsoleAccent,
-                        onClick = onOpenMatchConsole,
-                    )
-                    ApplicationTile(
-                        title = "Aufstellungen",
-                        description = "Kader für Heim- und Gastmannschaft anlegen.",
-                        accent = RosterAccent,
-                        onClick = onOpenRoster,
-                    )
-                    ApplicationTile(
-                        title = "Spieldaten",
-                        description = "Mannschaften (mit Kürzel) und Schiedsrichter festlegen.",
-                        accent = MatchSetupAccent,
-                        onClick = onOpenMatchSetup,
-                    )
-                    ApplicationTile(
-                        title = "Notizblock",
-                        description = "Freihand zeichnen — z.B. taktische Skizzen.",
-                        accent = DrawingAccent,
-                        onClick = onOpenDrawingPad,
-                    )
-                    ApplicationTile(
-                        title = "Taktiktafel",
-                        description = "Spielfeld mit verschiebbaren Spieler-Tokens.",
-                        accent = TacticAccent,
-                        onClick = onOpenTacticBoard,
-                    )
+                    if (AppVariant.showRating) {
+                        ApplicationTile(
+                            title = "Spielbewertung",
+                            description = "Phasen und Spiele auswählen und Schiedsrichter bewerten.",
+                            accent = DhbRed,
+                            onClick = onOpenPhases,
+                        )
+                    }
+                    if (AppVariant.showRefereeCoaching) {
+                        ApplicationTile(
+                            title = "Schiedsrichter-Coaching",
+                            description = "Coaching-Sitzung mit Bogen, Spieluhr und Anzeigetafel.",
+                            accent = CoachingAccent,
+                            onClick = onOpenCoaching,
+                        )
+                    }
+                    if (AppVariant.showCoachingSheet) {
+                        ApplicationTile(
+                            title = "Coaching-Bogen",
+                            description = "Nur den HVNB-Beobachterbogen ausfüllen, ohne Spieluhr.",
+                            accent = CoachingSheetAccent,
+                            onClick = onOpenCoachingSheet,
+                        )
+                    }
+                    if (AppVariant.showMatchConsole) {
+                        ApplicationTile(
+                            title = "Spieluhr & Anzeigetafel",
+                            description = "Zeit stoppen und den Spielstand von Heim und Gast führen.",
+                            accent = MatchConsoleAccent,
+                            onClick = onOpenMatchConsole,
+                        )
+                    }
+                    if (AppVariant.showRoster) {
+                        ApplicationTile(
+                            title = "Aufstellungen",
+                            description = "Kader für Heim- und Gastmannschaft anlegen.",
+                            accent = RosterAccent,
+                            onClick = onOpenRoster,
+                        )
+                    }
+                    if (AppVariant.showMatchSetup) {
+                        ApplicationTile(
+                            title = "Spieldaten",
+                            description = "Mannschaften (mit Kürzel) und Schiedsrichter festlegen.",
+                            accent = MatchSetupAccent,
+                            onClick = onOpenMatchSetup,
+                        )
+                    }
+                    if (AppVariant.showDrawingPad) {
+                        ApplicationTile(
+                            title = "Notizblock",
+                            description = "Freihand zeichnen — z.B. taktische Skizzen.",
+                            accent = DrawingAccent,
+                            onClick = onOpenDrawingPad,
+                        )
+                    }
+                    if (AppVariant.showTacticBoard) {
+                        ApplicationTile(
+                            title = "Taktiktafel",
+                            description = "Spielfeld mit verschiebbaren Spieler-Tokens.",
+                            accent = TacticAccent,
+                            onClick = onOpenTacticBoard,
+                        )
+                    }
                 }
             }
         }
