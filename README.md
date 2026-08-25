@@ -184,7 +184,7 @@ The variant is selected with `-PappVariant=...`:
 | Variant | Included modules |
 |---|---|
 | `full` (default) | All modules: Spielbewertung, Schiedsrichter-Coaching, Coaching-Bogen, Spieluhr, Aufstellungen, Spieldaten, Notizblock, Taktiktafel |
-| `coaching` | Schiedsrichter-Coaching, Coaching-Bogen, Spieluhr, Aufstellungen, Spieldaten, Notizblock, Taktiktafel — no rating backend needed |
+| `coaching` | Schiedsrichter-Coaching, Notizblock, Taktiktafel — the focused coaching set, no backend required |
 | `rating` | Only Spielbewertung (phases, match details, login, vote) — intended for the public VPS |
 
 Production build examples:
