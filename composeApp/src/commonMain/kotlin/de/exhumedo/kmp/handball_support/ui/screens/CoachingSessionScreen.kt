@@ -106,13 +106,6 @@ fun CoachingSessionScreen(
                             },
                         )
                     }
-                    item(key = "session-history") {
-                        CoachingHistoryPanel(
-                            entries = history.entriesDescending,
-                            onEntryClick = { id -> selectedEntryId = id },
-                        )
-                    }
-
                     coachingSheet(
                         presenter = coaching,
                         expanded = expanded,
@@ -139,6 +132,13 @@ fun CoachingSessionScreen(
                             )
                         },
                     )
+
+                    item(key = "session-history") {
+                        CoachingHistoryPanel(
+                            entries = history.entriesDescending,
+                            onEntryClick = { id -> selectedEntryId = id },
+                        )
+                    }
 
                     item(key = "session-footer") { Spacer(Modifier.height(Dimens.spaceXl)) }
                 }
