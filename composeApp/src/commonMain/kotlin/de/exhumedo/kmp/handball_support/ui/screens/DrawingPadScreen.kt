@@ -29,6 +29,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -93,15 +94,17 @@ fun DrawingPadScreen(
     storage: DrawingStorage = drawingStorage(),
     onNavigateHome: () -> Unit,
 ) {
-    // Load saved strokes synchronously during composition so they are present
-    // before the first frame and survive navigation away/back.
-    val strokes = remember(storage) {
-        mutableStateListOf<DrawnStroke>().apply {
-            addAll(storage.read()?.deserializeStrokes() ?: emptyList())
-        }
-    }
+    val strokes = remember { mutableStateListOf<DrawnStroke>() }
     var currentColor by remember { mutableStateOf(Color.Black) }
     var strokeWidth by remember { mutableStateOf(4f) }
+
+    // Load saved strokes every time this destination becomes active.
+    LaunchedEffect(Unit) {
+        storage.read()?.deserializeStrokes()?.let { saved ->
+            strokes.clear()
+            strokes.addAll(saved)
+        }
+    }
 
     // Persist whenever strokes change.
     DisposableEffect(strokes.toList()) {

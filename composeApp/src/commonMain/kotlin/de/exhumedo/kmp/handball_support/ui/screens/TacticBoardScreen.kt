@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,9 +85,8 @@ fun TacticBoardScreen(
 ) {
     var rotated by remember { mutableStateOf(false) }
 
-    // Restore saved token positions synchronously during composition so the
-    // board shows the saved layout on first frame and survives navigation.
-    remember(storage) {
+    // Restore saved token positions every time this destination becomes active.
+    LaunchedEffect(Unit) {
         storage.read()?.let { presenter.restore(it) }
     }
 
