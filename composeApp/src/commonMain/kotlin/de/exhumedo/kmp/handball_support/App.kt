@@ -32,8 +32,10 @@ import de.exhumedo.kmp.handball_support.matchconsole.TacticBoardPresenter
 import de.exhumedo.kmp.handball_support.navigation.AppRoute
 import de.exhumedo.kmp.handball_support.navigation.phasesPath
 import de.exhumedo.kmp.handball_support.navigation.rememberAppNavigator
+import de.exhumedo.kmp.handball_support.persistence.DrawingPadPresenter
 import de.exhumedo.kmp.handball_support.persistence.SessionManager
 import de.exhumedo.kmp.handball_support.persistence.SessionMapper
+import de.exhumedo.kmp.handball_support.persistence.drawingStorage
 import de.exhumedo.kmp.handball_support.ui.ApplicationSelectionScreen
 import de.exhumedo.kmp.handball_support.ui.CoachingSessionScreen
 import de.exhumedo.kmp.handball_support.ui.CoachingSetupScreen
@@ -68,6 +70,7 @@ fun App() {
     val rosterPresenter = remember { RosterPresenter() }
     val matchSetupPresenter = remember { MatchSetupPresenter() }
     val tacticBoardPresenter = remember { TacticBoardPresenter() }
+    val drawingPadPresenter = remember { DrawingPadPresenter(drawingStorage()) }
     val sessionManager = remember { SessionManager() }
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
@@ -479,6 +482,7 @@ fun App() {
                     if (AppVariant.showDrawingPad) {
                         composable<AppRoute.DrawingPad> {
                             DrawingPadScreen(
+                                presenter = drawingPadPresenter,
                                 onNavigateHome = { navigator.navigate(AppRoute.Home) },
                             )
                         }

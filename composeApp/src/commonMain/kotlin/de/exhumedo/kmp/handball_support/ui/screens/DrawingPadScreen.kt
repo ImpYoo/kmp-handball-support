@@ -28,16 +28,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import de.exhumedo.kmp.handball_support.persistence.DrawingStorage
-import de.exhumedo.kmp.handball_support.persistence.drawingStorage
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,17 +47,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import de.exhumedo.kmp.handball_support.persistence.DrawingPadPresenter
+import de.exhumedo.kmp.handball_support.persistence.InMemoryDrawingStorage
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
 import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
 import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
 import de.exhumedo.kmp.handball_support.ui.theme.DhbRed
 import de.exhumedo.kmp.handball_support.ui.theme.Dimens
-
-private data class DrawnStroke(
-    val points: List<Offset>,
-    val color: Color,
-    val strokeWidthDp: Float,
-)
 
 private val PaletteColors = listOf(
     Color.Black,
@@ -72,45 +64,18 @@ private val PaletteColors = listOf(
     Color.White,
 )
 
-
-private fun DrawnStroke.toSerializable(): SerializableStroke =
-    SerializableStroke(points.map { SerializablePoint(it.x, it.y) }, color.value.toLong(), strokeWidthDp)
-
-private fun SerializableStroke.toDrawnStroke(): DrawnStroke =
-    DrawnStroke(points.map { Offset(it.x, it.y) }, Color(color), strokeWidthDp)
-
-private fun List<DrawnStroke>.serialize(): String =
-    kotlinx.serialization.json.Json.encodeToString(SerializableStrokeList.serializer(), SerializableStrokeList(map { it.toSerializable() }))
-
-private fun String.deserializeStrokes(): List<DrawnStroke> =
-    runCatching { kotlinx.serialization.json.Json.decodeFromString(SerializableStrokeList.serializer(), this).strokes.map { it.toDrawnStroke() } }.getOrElse { emptyList() }
-
 /**
  * Full-screen drawing pad: draw with finger/mouse, choose color and stroke width,
  * undo the last stroke, and clear everything.
  */
 @Composable
 fun DrawingPadScreen(
-    storage: DrawingStorage = drawingStorage(),
+    presenter: DrawingPadPresenter,
     onNavigateHome: () -> Unit,
 ) {
-    val strokes = remember { mutableStateListOf<DrawnStroke>() }
+    val strokes = presenter.strokes
     var currentColor by remember { mutableStateOf(Color.Black) }
     var strokeWidth by remember { mutableStateOf(4f) }
-
-    // Load saved strokes every time this destination becomes active.
-    LaunchedEffect(Unit) {
-        storage.read()?.deserializeStrokes()?.let { saved ->
-            strokes.clear()
-            strokes.addAll(saved)
-        }
-    }
-
-    // Persist whenever strokes change.
-    DisposableEffect(strokes.toList()) {
-        if (strokes.isNotEmpty()) storage.save(strokes.toList().serialize())
-        onDispose { }
-    }
 
     AppTheme {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -143,17 +108,14 @@ fun DrawingPadScreen(
                     ) {
                         // Undo
                         DhbButton(
-                            onClick = { if (strokes.isNotEmpty()) strokes.removeAt(strokes.lastIndex) },
+                            onClick = presenter::removeLastStroke,
                             enabled = strokes.isNotEmpty(),
                         ) {
                             Icon(Icons.Filled.Undo, contentDescription = "Rückgängig")
                         }
                         // Clear all
                         DhbButton(
-                            onClick = {
-                                strokes.clear()
-                                storage.clear()
-                            },
+                            onClick = presenter::clear,
                             enabled = strokes.isNotEmpty(),
                         ) {
                             Icon(Icons.Filled.Delete, contentDescription = "Alles löschen")
@@ -227,12 +189,10 @@ fun DrawingPadScreen(
                                         }
                                     } while (event.changes.any { it.pressed })
                                     if (currentPoints.isNotEmpty()) {
-                                        strokes.add(
-                                            DrawnStroke(
-                                                points = currentPoints.toList(),
-                                                color = colorState.value,
-                                                strokeWidthDp = widthState.value,
-                                            ),
+                                        presenter.addStroke(
+                                            points = currentPoints.toList(),
+                                            color = colorState.value,
+                                            strokeWidthDp = widthState.value,
                                         )
                                         currentPoints.clear()
                                     }
@@ -284,18 +244,8 @@ fun DrawingPadScreen(
 @Preview
 @Composable
 private fun DrawingPadScreenPreview() {
-    DrawingPadScreen(storage = de.exhumedo.kmp.handball_support.persistence.InMemoryDrawingStorage(), onNavigateHome = {})
+    DrawingPadScreen(
+        presenter = DrawingPadPresenter(InMemoryDrawingStorage()),
+        onNavigateHome = {},
+    )
 }
-
-@kotlinx.serialization.Serializable
-private data class SerializablePoint(val x: Float, val y: Float)
-
-@kotlinx.serialization.Serializable
-private data class SerializableStroke(val points: List<SerializablePoint>, val color: Long, val strokeWidthDp: Float)
-
-@kotlinx.serialization.Serializable
-private data class SerializableStrokeList(val strokes: List<SerializableStroke>)
-
-
-
-
