@@ -84,7 +84,10 @@ fun rememberAppNavigator(
                         entry.toRoute<AppRoute.Vote>().toPath()
                     }
                     route.startsWith("coaching") -> "coaching"
-                    route.startsWith("session") -> "session"
+                    route.startsWith("session") -> {
+                        val session = entry.toRoute<AppRoute.CoachingSession>()
+                        session.toPath()
+                    }
                     route.startsWith("sheet") -> "sheet"
                     route.startsWith("clock") -> "clock"
                     route.startsWith("roster") -> "roster"

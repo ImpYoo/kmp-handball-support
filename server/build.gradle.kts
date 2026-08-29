@@ -30,6 +30,7 @@ dependencies {
     implementation(libs.ktor.serverNetty)
     implementation(libs.ktor.serverStatusPages)
     implementation(libs.logback)
+    implementation(libs.sqlite.jdbc)
     implementation(projects.shared)
     testImplementation(libs.kotlin.testJunit)
     testImplementation(libs.ktor.clientMock)

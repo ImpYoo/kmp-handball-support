@@ -108,13 +108,10 @@ fun App() {
     }
 
     // Online auto-save to the coaching REST API whenever the session has an identity.
-    LaunchedEffect(
-        presenter.token,
-        matchSetupPresenter.gameId,
-        matchSetupPresenter.matchDate,
-    ) {
+    // Stable LaunchedEffect keys: only restart when token/baseUrl presence toggles.
+    val baseUrl = AppConfig.baseApiUrl
+    LaunchedEffect(presenter.token?.isNotBlank(), baseUrl.isNotBlank()) {
         val token = presenter.token
-        val baseUrl = AppConfig.baseApiUrl
         if (token.isNullOrBlank() || baseUrl.isBlank()) {
             coachingSync.stopAutoSave()
             return@LaunchedEffect
@@ -123,17 +120,22 @@ fun App() {
             scope = this,
             baseUrl = baseUrl,
             token = token,
-            gameId = matchSetupPresenter.gameId.ifBlank {
-                "${matchSetupPresenter.homeTeamName}-${matchSetupPresenter.guestTeamName}-${matchSetupPresenter.matchDate}"
+            snapshotFlow = snapshotFlow {
+                coachingSync.buildRequest(
+                    gameId = matchSetupPresenter.gameId.ifBlank {
+                        "${matchSetupPresenter.homeTeamName}-${matchSetupPresenter.guestTeamName}-${matchSetupPresenter.matchDate}"
+                    },
+                    matchDate = matchSetupPresenter.matchDate,
+                    homeTeam = matchSetupPresenter.homeTeamName,
+                    awayTeam = matchSetupPresenter.guestTeamName,
+                    evaluatorUsername = presenter.username,
+                    firstRefereeName = matchSetupPresenter.firstRefereeName,
+                    secondRefereeName = matchSetupPresenter.secondRefereeName,
+                    criteria = coachingPresenter.criteria,
+                    comment = "",
+                    history = coachingHistoryPresenter.entries,
+                )
             },
-            matchDate = matchSetupPresenter.matchDate,
-            homeTeam = matchSetupPresenter.homeTeamName,
-            awayTeam = matchSetupPresenter.guestTeamName,
-            evaluatorUsername = presenter.username,
-            firstRefereeName = matchSetupPresenter.firstRefereeName,
-            secondRefereeName = matchSetupPresenter.secondRefereeName,
-            criteriaFlow = { coachingPresenter.criteria },
-            comment = { "" },
         )
     }
 
@@ -158,7 +160,9 @@ fun App() {
                     duration = SnackbarDuration.Short,
                 )
                 UiEvent.SessionExpired -> {
-                    navController.navigate(AppRoute.Login()) { launchSingleTop = true }
+                    if (AppVariant.showRating) {
+                        navController.navigate(AppRoute.Login()) { launchSingleTop = true }
+                    }
                     snackbarHostState.showSnackbar(
                         message = "Session expired. Please sign in again.",
                         duration = SnackbarDuration.Long,
@@ -457,7 +461,8 @@ fun App() {
                                 sessionManager.clear()
                             },
                             onContinue = {
-                                navigator.navigate(AppRoute.CoachingSession)
+                                val id = coachingSync.evaluationId
+                                navigator.navigate(AppRoute.CoachingSession(evaluationId = id))
                             },
                             onNavigateHome = {
                                 navigator.navigate(AppRoute.Home)
@@ -465,7 +470,12 @@ fun App() {
                         )
                     }
 
-                    composable<AppRoute.CoachingSession> {
+                    composable<AppRoute.CoachingSession> { entry ->
+                        val route = entry.toRoute<AppRoute.CoachingSession>()
+                        // Seed the sync with the evaluation id from the deep link, if any.
+                        LaunchedEffect(route.evaluationId) {
+                            route.evaluationId?.let { coachingSync.evaluationId = it }
+                        }
                         CoachingSessionScreen(
                             coaching = coachingPresenter,
                             sync = coachingSync,

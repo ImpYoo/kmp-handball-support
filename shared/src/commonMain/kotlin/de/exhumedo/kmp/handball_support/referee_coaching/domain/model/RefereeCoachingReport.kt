@@ -46,4 +46,5 @@ data class RefereeCoachingReport(
     val totalScore: Int,
     val maxTotalScore: Int,
     val percentage: Int,
+    val history: List<CoachingHistoryEntry> = emptyList(),
 )

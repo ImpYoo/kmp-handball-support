@@ -5,6 +5,7 @@ import de.exhumedo.kmp.handball_support.application.AuthenticationApplicationSer
 import de.exhumedo.kmp.handball_support.application.MatchApplicationService
 import de.exhumedo.kmp.handball_support.application.PerformanceEvaluationApplicationService
 import de.exhumedo.kmp.handball_support.application.UuidEvaluationIdGenerator
+import de.exhumedo.kmp.handball_support.api.configureCoachingRouting
 import de.exhumedo.kmp.handball_support.api.configureHttp
 import de.exhumedo.kmp.handball_support.api.configurePhaseRouting
 import de.exhumedo.kmp.handball_support.api.configureRouting
@@ -19,6 +20,7 @@ import de.exhumedo.kmp.handball_support.persistence.MockPhaseRepository
 import de.exhumedo.kmp.handball_support.persistence.PerformanceEvaluationBasedVoteRepository
 import de.exhumedo.kmp.handball_support.persistence.SportradarPhaseRepositoryAdapter
 import de.exhumedo.kmp.handball_support.persistence.auth.JsonFileAuthUserStore
+import de.exhumedo.kmp.handball_support.persistence.coaching.SqliteCoachingEvaluationRepository
 import de.exhumedo.kmp.handball_support.security.JwtTokenService
 import de.exhumedo.kmp.handball_support.security.LoginAttemptGuard
 import de.exhumedo.kmp.handball_support.security.Pbkdf2PasswordHasher
@@ -97,12 +99,19 @@ fun Application.module(
         clock = jwtClock,
     )
 
+    val coachingRepository = SqliteCoachingEvaluationRepository(appConfig.storage.coachingEvaluationsDb)
+    val coachingApplicationService = de.exhumedo.kmp.handball_support.application.coaching.CoachingApplicationService(
+        repository = coachingRepository,
+        clock = clock,
+    )
+
     configureHttp(appConfig)
     configureSecurity(appConfig.jwt, tokenService)
     configureAuthRouting(authenticationApplicationService, authUserApplicationService, tokenService, authUserStore)
     configureRouting(repository, applicationService, tokenService, authUserStore)
     configurePhaseRouting(matchApplicationService, tokenService, authUserStore)
     configureSportradarRouting(sportradarRepo, tokenService, authUserStore)
+    configureCoachingRouting(coachingApplicationService, tokenService, authUserStore)
 }
 
 private fun defaultAuthUserStore(

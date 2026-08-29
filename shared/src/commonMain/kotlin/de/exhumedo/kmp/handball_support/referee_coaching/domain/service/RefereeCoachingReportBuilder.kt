@@ -51,5 +51,6 @@ class RefereeCoachingReportBuilder {
         totalScore = evaluation.totalScore,
         maxTotalScore = evaluation.maxTotalScore,
         percentage = evaluation.percentage,
+        history = evaluation.history,
     )
 }

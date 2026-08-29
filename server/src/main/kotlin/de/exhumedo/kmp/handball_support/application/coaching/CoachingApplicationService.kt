@@ -33,6 +33,7 @@ class CoachingApplicationService(
             comment = command.comment,
             createdAt = now,
             updatedAt = now,
+            history = command.history,
         )
         return repository.save(evaluation)
     }
@@ -51,6 +52,7 @@ class CoachingApplicationService(
             criteria = criteria,
             comment = command.comment,
             updatedAt = kotlin.time.Clock.System.now().toString(),
+            history = command.history,
         )
         return repository.save(updated)
     }
@@ -74,9 +76,15 @@ class CoachingApplicationService(
             criterion.defectGroups.fold(criterion) { groupAcc, group ->
                 val groupCounts = criterionCounts[group.id] ?: return@fold groupAcc
                 groupCounts.entries.fold(groupAcc) { rootAcc, (rootCauseId, count) ->
-                    if (count <= 0) return@fold rootAcc
-                    (1..count).fold(rootAcc) { acc, _ ->
-                        scoring.incrementRootCause(acc, group.id, rootCauseId)
+                    if (count == 0) return@fold rootAcc
+                    if (count > 0) {
+                        (1..count).fold(rootAcc) { acc, _ ->
+                            scoring.incrementRootCause(acc, group.id, rootCauseId)
+                        }
+                    } else {
+                        (1..-count).fold(rootAcc) { acc, _ ->
+                            scoring.decrementRootCause(acc, group.id, rootCauseId)
+                        }
                     }
                 }
             }

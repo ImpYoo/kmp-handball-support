@@ -35,6 +35,7 @@ data class AppConfig(
 data class StorageConfig(
     val performanceEvaluationsFile: Path,
     val authUsersFile: Path,
+    val coachingEvaluationsDb: Path,
 )
 
 /**
@@ -128,6 +129,13 @@ object AppConfigLoader {
                         dotEnv = dotEnv,
                     ) ?: "server/data/auth-users.json",
                 ),
+                coachingEvaluationsDb = Paths.get(
+                    resolveConfigValue(
+                        envKey = "COACHING_EVALUATIONS_DB",
+                        systemPropertyKey = "coaching.evaluations.db",
+                        dotEnv = dotEnv,
+                    ) ?: "server/data/coaching-evaluations.sqlite",
+                ),
             ),
             jwt = JwtConfig(
                 issuer = resolveConfigValue(
@@ -197,7 +205,7 @@ object AppConfigLoader {
                     envKey = "EXTERNAL_API_KEY",
                     systemPropertyKey = "external.api.key",
                     dotEnv = dotEnv,
-                ),
+                )?.trim(),
                 apiKeyHeaderName = resolveConfigValue(
                     envKey = "EXTERNAL_API_KEY_HEADER",
                     systemPropertyKey = "external.api.key-header",
@@ -264,9 +272,9 @@ object AppConfigLoader {
         systemPropertyKey: String,
         dotEnv: Map<String, String>,
     ): String? {
-        return System.getenv(envKey)
+        return dotEnv[envKey]
             ?: System.getProperty(systemPropertyKey)
-            ?: dotEnv[envKey]
+            ?: System.getenv(envKey)
     }
 
     private fun resolveBoolean(
@@ -362,6 +370,9 @@ object AppConfigLoader {
             val apiKey = config.externalApi.apiKey?.trim().orEmpty()
             require(apiKey.isNotBlank()) {
                 "EXTERNAL_API_KEY is required when EXTERNAL_API_ENABLED=true."
+            }
+            require(apiKey !in PLACEHOLDER_API_KEYS) {
+                "EXTERNAL_API_KEY contains a placeholder value. Replace it with a real API key."
             }
         }
 

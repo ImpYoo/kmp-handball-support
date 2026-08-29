@@ -31,6 +31,7 @@ data class CreateCoachingEvaluationRequestDto(
     val secondReferee: CoachingPersonDto,
     val rootCauseCounts: Map<String, Map<String, Map<String, Int>>>,
     val comment: String = "",
+    val history: List<CoachingHistoryEntryDto> = emptyList(),
 )
 
 @Serializable
@@ -57,6 +58,7 @@ data class CoachingEvaluationResponseDto(
     val comment: String,
     val createdAt: String,
     val updatedAt: String,
+    val history: List<CoachingHistoryEntryDto> = emptyList(),
 )
 
 @Serializable
@@ -71,6 +73,7 @@ data class CoachingReportResponseDto(
     val totalScore: Int,
     val maxTotalScore: Int,
     val percentage: Int,
+    val history: List<CoachingHistoryEntryDto> = emptyList(),
 )
 
 @Serializable
@@ -96,6 +99,26 @@ data class RootCauseReportRowDto(
     val rootCauseId: String,
     val rootCauseName: String,
     val count: Int,
+)
+
+@Serializable
+data class CoachingHistoryEntryDto(
+    val id: String,
+    val gameTimeMillis: Long,
+    val homeScore: Int,
+    val guestScore: Int,
+    val type: String,
+    val criterionId: String? = null,
+    val defectGroupId: String? = null,
+    val rootCauseId: String? = null,
+    val goalTeam: String? = null,
+    val selected: Boolean = true,
+    val team: String? = null,
+    val teamLabel: String? = null,
+    val playerId: String? = null,
+    val playerLabel: String? = null,
+    val refereeName: String? = null,
+    val note: String = "",
 )
 
 @Serializable
@@ -132,6 +155,7 @@ fun CreateCoachingEvaluationRequestDto.toCommand(): CreateCoachingEvaluationComm
     secondReferee = CoachingPerson(secondReferee.personId, secondReferee.firstName, secondReferee.lastName),
     rootCauseCounts = rootCauseCounts,
     comment = comment,
+    history = history.map { it.toDomain() },
 )
 
 fun RefereeCoachingEvaluation.toResponseDto(): CoachingEvaluationResponseDto = CoachingEvaluationResponseDto(
@@ -156,6 +180,7 @@ fun RefereeCoachingEvaluation.toResponseDto(): CoachingEvaluationResponseDto = C
     comment = comment,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    history = history.map { it.toDto() },
 )
 
 fun RefereeCoachingReport.toResponseDto(): CoachingReportResponseDto = CoachingReportResponseDto(
@@ -191,7 +216,49 @@ fun RefereeCoachingReport.toResponseDto(): CoachingReportResponseDto = CoachingR
     totalScore = totalScore,
     maxTotalScore = maxTotalScore,
     percentage = percentage,
+    history = history.map { it.toDto() },
 )
+
+private fun CoachingHistoryEntryDto.toDomain(): de.exhumedo.kmp.handball_support.referee_coaching.domain.model.CoachingHistoryEntry =
+    de.exhumedo.kmp.handball_support.referee_coaching.domain.model.CoachingHistoryEntry(
+        id = id,
+        gameTimeMillis = gameTimeMillis,
+        homeScore = homeScore,
+        guestScore = guestScore,
+        type = runCatching { de.exhumedo.kmp.handball_support.referee_coaching.domain.model.CoachingHistoryEventType.valueOf(type) }
+            .getOrDefault(de.exhumedo.kmp.handball_support.referee_coaching.domain.model.CoachingHistoryEventType.ROOT_CAUSE),
+        criterionId = criterionId,
+        defectGroupId = defectGroupId,
+        rootCauseId = rootCauseId,
+        goalTeam = goalTeam,
+        selected = selected,
+        team = team,
+        teamLabel = teamLabel,
+        playerId = playerId,
+        playerLabel = playerLabel,
+        refereeName = refereeName,
+        note = note,
+    )
+
+private fun de.exhumedo.kmp.handball_support.referee_coaching.domain.model.CoachingHistoryEntry.toDto(): CoachingHistoryEntryDto =
+    CoachingHistoryEntryDto(
+        id = id,
+        gameTimeMillis = gameTimeMillis,
+        homeScore = homeScore,
+        guestScore = guestScore,
+        type = type.name,
+        criterionId = criterionId,
+        defectGroupId = defectGroupId,
+        rootCauseId = rootCauseId,
+        goalTeam = goalTeam,
+        selected = selected,
+        team = team,
+        teamLabel = teamLabel,
+        playerId = playerId,
+        playerLabel = playerLabel,
+        refereeName = refereeName,
+        note = note,
+    )
 
 fun List<de.exhumedo.kmp.handball_support.referee_coaching.domain.model.Criterion>.toCatalogDto(): CoachingCatalogResponseDto =
     CoachingCatalogResponseDto(

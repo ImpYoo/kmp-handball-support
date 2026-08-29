@@ -35,6 +35,7 @@ class AuthPresenter(
         authStorage.read()?.let {
             token = it.token
             role = it.role
+            username = it.username ?: ""
         }
     }
 
@@ -49,7 +50,7 @@ class AuthPresenter(
             val response = api.login(baseUrl = AppConfig.baseApiUrl, username = username, password = password)
             token = response.accessToken
             role = response.role
-            authStorage.save(StoredAuth(token = response.accessToken, role = response.role))
+            authStorage.save(StoredAuth(token = response.accessToken, role = response.role, username = username))
             password = ""
             statusMessage = "Logged in as $username (${response.role})"
 

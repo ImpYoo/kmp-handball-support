@@ -64,13 +64,6 @@ class CoachingApiTest {
             ?.get(1)
             ?: error("No id found in response body: $createdBody")
 
-        // Get
-        val getResponse = client.get("/api/coaching/evaluations/$savedId") {
-            header(HttpHeaders.Authorization, "Bearer $token")
-        }
-        assertEquals(HttpStatusCode.OK, getResponse.status)
-        assertTrue(getResponse.bodyAsText().contains("G-COACH-001"))
-
         // Report
         val reportResponse = client.get("/api/coaching/evaluations/$savedId/report") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -79,6 +72,14 @@ class CoachingApiTest {
         val reportBody = reportResponse.bodyAsText()
         assertTrue(reportBody.contains("evaluationId"))
         assertTrue(reportBody.contains("rows"))
+        assertTrue(reportBody.contains("Hard defence at wing"))
+
+        // Get
+        val getResponse = client.get("/api/coaching/evaluations/$savedId") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+        assertEquals(HttpStatusCode.OK, getResponse.status)
+        assertTrue(getResponse.bodyAsText().contains("G-COACH-001"))
     }
 
     @Test
@@ -182,7 +183,19 @@ class CoachingApiTest {
               "a1-spielverstaendnis": { "a1-schneller-anwurf": 3 }
             }
           },
-          "comment": "$comment"
+          "comment": "$comment",
+          "history": [
+            {
+              "id": "H-1",
+              "gameTimeMillis": 1234000,
+              "homeScore": 5,
+              "guestScore": 3,
+              "type": "FOUL",
+              "criterionId": "c2-foul-spiel",
+              "criterionLabel": "Foulspiel",
+              "note": "Hard defence at wing"
+            }
+          ]
         }
     """.trimIndent()
 }

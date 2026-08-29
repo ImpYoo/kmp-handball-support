@@ -12,10 +12,14 @@ import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.Criterion
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.ScoringConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Cross-cutting coordinator for the referee coaching session.
@@ -23,6 +27,8 @@ import kotlinx.coroutines.launch
  * - Keeps the locally persisted session state authoritative (offline backup).
  * - Sends debounced snapshots to the backend when a token is available and the
  *   base URL is reachable.
+ * - Only uploads when the coaching payload actually changes (criteria counts,
+ *   history entries, setup fields).
  * - Surfaces the last server-side report so the UI can render it without
  *   recomputing presentation in the client.
  */
@@ -31,7 +37,6 @@ class CoachingSessionSync(
 ) {
     /** Latest server-side evaluation id; null until first successful upload. */
     var evaluationId by mutableStateOf<String?>(null)
-        private set
 
     /** Latest server-side report; null when no upload has succeeded yet. */
     var report by mutableStateOf<CoachingReportResponseDto?>(null)
@@ -43,44 +48,38 @@ class CoachingSessionSync(
 
     private var pendingJob: Job? = null
 
+    /**
+     * Start reactive auto-save.
+     *
+     * [snapshotFlow] must produce a fresh payload on every relevant state change.
+     * This method adds debounce + distinctUntilChanged so identical snapshots
+     * never trigger a network request.
+     */
     fun startAutoSave(
         scope: CoroutineScope,
         baseUrl: String,
         token: String?,
-        gameId: String,
-        matchDate: String,
-        homeTeam: String,
-        awayTeam: String,
-        evaluatorUsername: String,
-        firstRefereeName: String,
-        secondRefereeName: String,
-        criteriaFlow: () -> List<Criterion>,
-        comment: () -> String,
+        snapshotFlow: Flow<CreateCoachingEvaluationRequestDto>,
     ) {
         pendingJob?.cancel()
         pendingJob = scope.launch {
-            flow {
-                while (true) {
-                    emit(criteriaFlow())
-                    delay(2_000)
-                }
-            }
-                .collectLatest { criteria ->
-                    if (token.isNullOrBlank() || baseUrl.isBlank()) {
+            @OptIn(FlowPreview::class)
+            snapshotFlow
+                .debounce(1.seconds)
+                .distinctUntilChanged { old, new -> old.isContentEqualTo(new) }
+                .collectLatest { request ->
+                    if (token.isNullOrBlank()) {
                         status = SyncStatus.Offline("No API configured or not signed in")
                         return@collectLatest
                     }
-                    val request = buildRequest(
-                        gameId = gameId,
-                        matchDate = matchDate,
-                        homeTeam = homeTeam,
-                        awayTeam = awayTeam,
-                        evaluatorUsername = evaluatorUsername,
-                        firstRefereeName = firstRefereeName,
-                        secondRefereeName = secondRefereeName,
-                        criteria = criteria,
-                        comment = comment(),
-                    )
+                    if (request.evaluatorUsername.isBlank()) {
+                        status = SyncStatus.Offline("Evaluator username is required")
+                        return@collectLatest
+                    }
+                    if (baseUrl.isBlank()) {
+                        status = SyncStatus.Offline("No API configured")
+                        return@collectLatest
+                    }
                     status = SyncStatus.Syncing
                     status = try {
                         val response = apiClient.saveEvaluation(
@@ -105,7 +104,22 @@ class CoachingSessionSync(
         pendingJob = null
     }
 
-    private fun buildRequest(
+    private fun CreateCoachingEvaluationRequestDto.isContentEqualTo(other: CreateCoachingEvaluationRequestDto): Boolean {
+        return game == other.game &&
+            evaluatorUsername == other.evaluatorUsername &&
+            firstReferee == other.firstReferee &&
+            secondReferee == other.secondReferee &&
+            rootCauseCounts == other.rootCauseCounts &&
+            comment == other.comment &&
+            history == other.history
+    }
+
+    /**
+     * Build a snapshot request from present observable state.
+     *
+     * This is a pure helper so callers can wire it into a [snapshotFlow].
+     */
+    fun buildRequest(
         gameId: String,
         matchDate: String,
         homeTeam: String,
@@ -115,6 +129,7 @@ class CoachingSessionSync(
         secondRefereeName: String,
         criteria: List<Criterion>,
         comment: String,
+        history: List<CoachingHistoryEntry>,
     ): CreateCoachingEvaluationRequestDto {
         val counts = criteria.associate { criterion ->
             criterion.id to criterion.defectGroups.associate { group ->
@@ -143,8 +158,29 @@ class CoachingSessionSync(
             ),
             rootCauseCounts = counts,
             comment = comment,
+            history = history.map { it.toDto() },
         )
     }
+
+    private fun CoachingHistoryEntry.toDto(): de.exhumedo.kmp.handball_support.client.CoachingHistoryEntryDto =
+        de.exhumedo.kmp.handball_support.client.CoachingHistoryEntryDto(
+            id = id,
+            gameTimeMillis = gameTimeMillis,
+            homeScore = homeScore,
+            guestScore = guestScore,
+            type = type.name,
+            criterionId = criterionId,
+            defectGroupId = defectGroupId,
+            rootCauseId = rootCauseId,
+            goalTeam = goalTeam?.name,
+            selected = selected,
+            team = attachment?.team?.name,
+            teamLabel = attachment?.teamLabel,
+            playerId = attachment?.playerId,
+            playerLabel = attachment?.playerLabel,
+            refereeName = attachment?.refereeName,
+            note = note,
+        )
 
     sealed interface SyncStatus {
         data object Idle : SyncStatus

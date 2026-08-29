@@ -1,11 +1,11 @@
 [
     {
         "username": "admin",
-        "passwordHash": "pbkdf2_sha256$210000$/gMdKKb9IGjsWcgghBGlVw==$fXfwtp923fmjGjVC5LwV9DLl5mkQv+VlS0c1CiQlFkM=",
+        "passwordHash": "pbkdf2_sha256$210000$7M0UUJEOd1El2SRV3A4CCw==$g35R+y35V5fyfX2wE2oeUGFXoURjgEgWv3p+1m6MORo=",
         "role": "admin",
         "enabled": true,
-        "createdAt": "2026-04-07T09:51:55.074726Z",
-        "updatedAt": "2026-06-01T11:19:41.960580Z",
-        "tokenInvalidBefore": "2026-06-01T11:19:41.960451Z"
+        "createdAt": "2026-08-29T14:28:27.242306Z",
+        "updatedAt": "2026-08-29T14:28:27.242306Z",
+        "tokenInvalidBefore": null
     }
 ]

@@ -57,7 +57,9 @@ sealed interface AppRoute {
 
     @Serializable
     @SerialName("session")
-    data object CoachingSession : AppRoute
+    data class CoachingSession(
+        val evaluationId: String? = null,
+    ) : AppRoute
 
     @Serializable
     @SerialName("sheet")

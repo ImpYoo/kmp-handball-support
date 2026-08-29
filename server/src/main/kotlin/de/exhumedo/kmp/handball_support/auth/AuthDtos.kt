@@ -41,6 +41,9 @@ enum class AuthRoleDto {
     /** Referee role. */
     REFEREE,
 
+    /** Observer / coach role. */
+    COACH,
+
     /** Viewer role. */
     VIEWER,
 }
@@ -115,6 +118,7 @@ data class AuthUserResponseDto(
 fun AuthRoleDto.toDomain(): AuthRole = when (this) {
     AuthRoleDto.ADMIN -> AuthRole.ADMIN
     AuthRoleDto.REFEREE -> AuthRole.REFEREE
+    AuthRoleDto.COACH -> AuthRole.COACH
     AuthRoleDto.VIEWER -> AuthRole.VIEWER
 }
 
@@ -135,5 +139,6 @@ fun AuthUser.toResponseDto(): AuthUserResponseDto = AuthUserResponseDto(
 private fun AuthRole.toDto(): AuthRoleDto = when (this) {
     AuthRole.ADMIN -> AuthRoleDto.ADMIN
     AuthRole.REFEREE -> AuthRoleDto.REFEREE
+    AuthRole.COACH -> AuthRoleDto.COACH
     AuthRole.VIEWER -> AuthRoleDto.VIEWER
 }

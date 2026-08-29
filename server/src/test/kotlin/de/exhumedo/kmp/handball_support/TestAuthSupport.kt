@@ -27,11 +27,13 @@ internal fun fixedClock(isoInstant: String): Clock = object : Clock {
 internal fun createTestAppConfig(
     authUsersFile: Path = Files.createTempFile("auth-users", ".json"),
     evaluationsFile: Path = Files.createTempFile("performance-evaluations", ".json"),
+    coachingDb: Path = Files.createTempFile("coaching-evaluations", ".sqlite"),
 ): AppConfig {
     return AppConfig(
         storage = StorageConfig(
             performanceEvaluationsFile = evaluationsFile,
             authUsersFile = authUsersFile,
+            coachingEvaluationsDb = coachingDb,
         ),
         jwt = JwtConfig(
             issuer = "test-issuer",
@@ -70,6 +72,11 @@ internal fun createTestAuthUserStore(
         username = "viewer",
         password = "ViewerPass123!",
         role = AuthRole.VIEWER,
+    )
+    store.createUser(
+        username = "coach",
+        password = "CoachPass123!",
+        role = AuthRole.COACH,
     )
 
     return store

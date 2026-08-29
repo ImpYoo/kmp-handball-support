@@ -2,6 +2,8 @@ package de.exhumedo.kmp.handball_support.persistence.coaching
 
 import de.exhumedo.kmp.handball_support.referee_coaching.data.DefaultCriterionCatalog
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.CoachingGame
+import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.CoachingHistoryEntry
+import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.CoachingHistoryEventType
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.CoachingPerson
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.Criterion
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.RefereeCoachingEvaluation
@@ -86,6 +88,37 @@ class SqliteCoachingEvaluationRepository(
                                 }
                             }
                         }
+                    }
+                    ps.executeBatch()
+                }
+
+                // Delete old history, then insert current history
+                connection.prepareStatement(DELETE_HISTORY).use { ps ->
+                    ps.setString(1, evaluation.id)
+                    ps.executeUpdate()
+                }
+
+                connection.prepareStatement(INSERT_HISTORY).use { ps ->
+                    evaluation.history.forEach { entry ->
+                        ps.setString(1, UUID.randomUUID().toString())
+                        ps.setString(2, evaluation.id)
+                        ps.setString(3, entry.id)
+                        ps.setLong(4, entry.gameTimeMillis)
+                        ps.setInt(5, entry.homeScore)
+                        ps.setInt(6, entry.guestScore)
+                        ps.setString(7, entry.type.name)
+                        ps.setString(8, entry.criterionId)
+                        ps.setString(9, entry.defectGroupId)
+                        ps.setString(10, entry.rootCauseId)
+                        ps.setString(11, entry.goalTeam)
+                        ps.setInt(12, if (entry.selected) 1 else 0)
+                        ps.setString(13, entry.team)
+                        ps.setString(14, entry.teamLabel)
+                        ps.setString(15, entry.playerId)
+                        ps.setString(16, entry.playerLabel)
+                        ps.setString(17, entry.refereeName)
+                        ps.setString(18, entry.note)
+                        ps.addBatch()
                     }
                     ps.executeBatch()
                 }
@@ -182,7 +215,39 @@ class SqliteCoachingEvaluationRepository(
             comment = rs.getString("comment"),
             createdAt = rs.getString("created_at"),
             updatedAt = rs.getString("updated_at"),
+            history = loadHistory(connection, id),
         )
+    }
+
+    private fun loadHistory(connection: Connection, evaluationId: String): List<CoachingHistoryEntry> {
+        return connection.prepareStatement(SELECT_HISTORY).use { ps ->
+            ps.setString(1, evaluationId)
+            ps.executeQuery().use { rs ->
+                val entries = mutableListOf<CoachingHistoryEntry>()
+                while (rs.next()) {
+                    entries += CoachingHistoryEntry(
+                        id = rs.getString("entry_id"),
+                        gameTimeMillis = rs.getLong("game_time_millis"),
+                        homeScore = rs.getInt("home_score"),
+                        guestScore = rs.getInt("guest_score"),
+                        type = runCatching { CoachingHistoryEventType.valueOf(rs.getString("type")) }
+                            .getOrDefault(CoachingHistoryEventType.ROOT_CAUSE),
+                        criterionId = rs.getString("criterion_id"),
+                        defectGroupId = rs.getString("defect_group_id"),
+                        rootCauseId = rs.getString("root_cause_id"),
+                        goalTeam = rs.getString("goal_team"),
+                        selected = rs.getInt("selected") == 1,
+                        team = rs.getString("team"),
+                        teamLabel = rs.getString("team_label"),
+                        playerId = rs.getString("player_id"),
+                        playerLabel = rs.getString("player_label"),
+                        refereeName = rs.getString("referee_name"),
+                        note = rs.getString("note") ?: "",
+                    )
+                }
+                entries
+            }
+        }
     }
 
     private fun replayCounts(connection: Connection, evaluationId: String, template: Criterion): Criterion {
@@ -236,7 +301,30 @@ class SqliteCoachingEvaluationRepository(
                 FOREIGN KEY (evaluation_id) REFERENCES coaching_evaluations(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS coaching_history_entries (
+                id TEXT PRIMARY KEY,
+                evaluation_id TEXT NOT NULL,
+                entry_id TEXT NOT NULL,
+                game_time_millis INTEGER NOT NULL,
+                home_score INTEGER NOT NULL,
+                guest_score INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                criterion_id TEXT,
+                defect_group_id TEXT,
+                root_cause_id TEXT,
+                goal_team TEXT,
+                selected INTEGER NOT NULL,
+                team TEXT,
+                team_label TEXT,
+                player_id TEXT,
+                player_label TEXT,
+                referee_name TEXT,
+                note TEXT NOT NULL DEFAULT '',
+                FOREIGN KEY (evaluation_id) REFERENCES coaching_evaluations(id) ON DELETE CASCADE
+            );
+
             CREATE INDEX IF NOT EXISTS idx_counts_evaluation ON coaching_criterion_counts(evaluation_id, criterion_id);
+            CREATE INDEX IF NOT EXISTS idx_history_evaluation ON coaching_history_entries(evaluation_id);
             CREATE INDEX IF NOT EXISTS idx_evaluations_game ON coaching_evaluations(game_id);
             CREATE INDEX IF NOT EXISTS idx_evaluations_evaluator ON coaching_evaluations(evaluator_username);
             CREATE INDEX IF NOT EXISTS idx_evaluations_date ON coaching_evaluations(match_date);
@@ -271,6 +359,23 @@ class SqliteCoachingEvaluationRepository(
         const val INSERT_COUNT = """
             INSERT INTO coaching_criterion_counts(id, evaluation_id, criterion_id, group_id, root_cause_id, count)
             VALUES (?, ?, ?, ?, ?, ?)
+        """
+
+        const val DELETE_HISTORY = "DELETE FROM coaching_history_entries WHERE evaluation_id = ?"
+        const val INSERT_HISTORY = """
+            INSERT INTO coaching_history_entries(
+                id, evaluation_id, entry_id, game_time_millis, home_score, guest_score, type,
+                criterion_id, defect_group_id, root_cause_id, goal_team, selected,
+                team, team_label, player_id, player_label, referee_name, note
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        const val SELECT_HISTORY = """
+            SELECT entry_id, game_time_millis, home_score, guest_score, type,
+                   criterion_id, defect_group_id, root_cause_id, goal_team, selected,
+                   team, team_label, player_id, player_label, referee_name, note
+            FROM coaching_history_entries
+            WHERE evaluation_id = ?
+            ORDER BY game_time_millis ASC, entry_id ASC
         """
 
         const val SELECT_EVALUATION_BY_ID = "SELECT * FROM coaching_evaluations WHERE id = ?"

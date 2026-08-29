@@ -24,7 +24,7 @@ data class CoachingGame(
  *
  * The sheet is always tied to a concrete match and referee pair. It contains
  * the criteria catalog with live root-cause counts, from which scores are
- * derived.
+ * derived, plus the chronological observation history.
  */
 data class RefereeCoachingEvaluation(
     val id: String,
@@ -36,6 +36,7 @@ data class RefereeCoachingEvaluation(
     val comment: String,
     val createdAt: String,
     val updatedAt: String,
+    val history: List<CoachingHistoryEntry> = emptyList(),
 ) {
     init {
         require(id.isNotBlank()) { "id must not be blank" }

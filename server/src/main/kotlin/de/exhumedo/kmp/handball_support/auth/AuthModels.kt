@@ -14,6 +14,9 @@ enum class AuthRole(
     /** Referee access for creating and reading evaluations. */
     REFEREE("referee"),
 
+    /** Observer / coach access for creating and reading evaluations. */
+    COACH("coach"),
+
     /** Read-only access. */
     VIEWER("viewer"), ;
 

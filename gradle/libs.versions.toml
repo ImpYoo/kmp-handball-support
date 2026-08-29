@@ -21,6 +21,7 @@ ktor = "3.4.1"
 logback = "1.5.32"
 material3 = "1.10.0-alpha05"
 auth0 = "4.5.0"
+sqlite-jdbc = "3.49.1.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -69,6 +70,7 @@ ktor-client-js-mpp = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 kotlinx-serialization-json-mpp = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 auth0-jwt = { module = "com.auth0:java-jwt", version.ref = "auth0" }
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

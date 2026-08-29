@@ -25,6 +25,7 @@ data class CreateCoachingEvaluationRequestDto(
     val secondReferee: CoachingPersonDto,
     val rootCauseCounts: Map<String, Map<String, Map<String, Int>>>,
     val comment: String = "",
+    val history: List<CoachingHistoryEntryDto> = emptyList(),
 )
 
 @Serializable
@@ -65,6 +66,27 @@ data class CoachingReportResponseDto(
     val totalScore: Int,
     val maxTotalScore: Int,
     val percentage: Int,
+    val history: List<CoachingHistoryEntryDto> = emptyList(),
+)
+
+@Serializable
+data class CoachingHistoryEntryDto(
+    val id: String,
+    val gameTimeMillis: Long,
+    val homeScore: Int,
+    val guestScore: Int,
+    val type: String,
+    val criterionId: String? = null,
+    val defectGroupId: String? = null,
+    val rootCauseId: String? = null,
+    val goalTeam: String? = null,
+    val selected: Boolean = true,
+    val team: String? = null,
+    val teamLabel: String? = null,
+    val playerId: String? = null,
+    val playerLabel: String? = null,
+    val refereeName: String? = null,
+    val note: String = "",
 )
 
 @Serializable
