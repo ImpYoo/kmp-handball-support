@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,6 +50,13 @@ fun CoachingSetupScreen(
     matchSetup: MatchSetupPresenter,
     roster: RosterPresenter,
     isSessionActive: Boolean,
+    username: String,
+    password: String,
+    token: String?,
+    onUsernameChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onLogin: () -> Unit,
+    onLogout: () -> Unit,
     onResetAll: () -> Unit,
     onContinue: () -> Unit,
     onNavigateHome: () -> Unit,
@@ -56,6 +64,7 @@ fun CoachingSetupScreen(
     val scrollState = rememberScrollState()
     val canContinue = matchSetup.homeTeamName.isNotBlank() && matchSetup.guestTeamName.isNotBlank()
     var showResetDialog by remember { mutableStateOf(false) }
+    var showLoginDialog by remember { mutableStateOf(false) }
 
     AppTheme {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -64,6 +73,12 @@ fun CoachingSetupScreen(
                 subtitle = "Mannschaften, Schiedsrichter und Aufstellungen",
                 onLogoClick = onNavigateHome,
                 actions = {
+                    if (token == null) {
+                        DhbButton(onClick = { showLoginDialog = true }) { Text("Anmelden") }
+                    } else {
+                        DhbButton(onClick = onLogout) { Text("Abmelden ($username)") }
+                    }
+                    Spacer(Modifier.width(Dimens.spaceSm))
                     DhbButton(onClick = onNavigateHome) { Text("Menü") }
                 },
             )
@@ -110,6 +125,20 @@ fun CoachingSetupScreen(
                 }
             }
         }
+    }
+
+    if (showLoginDialog) {
+        CoachingLoginDialog(
+            username = username,
+            password = password,
+            onUsernameChange = onUsernameChange,
+            onPasswordChange = onPasswordChange,
+            onDismiss = { showLoginDialog = false },
+            onLogin = {
+                onLogin()
+                showLoginDialog = false
+            },
+        )
     }
 
     if (showResetDialog) {
@@ -178,10 +207,52 @@ private fun CoachingSetupScreenPreview() {
         },
         roster = remember { RosterPresenter().apply { addPlayer(de.exhumedo.kmp.handball_support.matchconsole.RosterTeam.HOME, "7", "Müller") } },
         isSessionActive = true,
+        username = "admin",
+        password = "",
+        token = null,
+        onUsernameChange = {},
+        onPasswordChange = {},
+        onLogin = {},
+        onLogout = {},
         onResetAll = {},
         onContinue = {},
         onNavigateHome = {},
     )
+}
+
+@Composable
+private fun CoachingLoginDialog(
+    username: String,
+    password: String,
+    onUsernameChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onLogin: () -> Unit,
+) {
+    DhbDialog(
+        onDismissRequest = onDismiss,
+        title = "Anmelden",
+        confirmText = "Anmelden",
+        dismissText = "Abbrechen",
+        onConfirm = onLogin,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
+            OutlinedTextField(
+                value = username,
+                onValueChange = onUsernameChange,
+                label = { Text("Benutzername") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = password,
+                onValueChange = onPasswordChange,
+                label = { Text("Passwort") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
 }
 
 

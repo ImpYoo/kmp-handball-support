@@ -436,6 +436,17 @@ fun App() {
                             matchSetup = matchSetupPresenter,
                             roster = rosterPresenter,
                             isSessionActive = sessionActive,
+                            username = presenter.username,
+                            password = presenter.password,
+                            token = presenter.token,
+                            onUsernameChange = { presenter.username = it },
+                            onPasswordChange = { presenter.password = it },
+                            onLogin = {
+                                scope.launch {
+                                    presenter.login()
+                                }
+                            },
+                            onLogout = { presenter.logout() },
                             onResetAll = {
                                 coachingPresenter.reset()
                                 coachingHistoryPresenter.clear()
