@@ -3,6 +3,9 @@ package de.exhumedo.kmp.handball_support.matchconsole
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import de.exhumedo.kmp.handball_support.persistence.TacticStorage
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 enum class TokenType { HOME, GUEST, BALL, REFEREE }
 
@@ -17,9 +20,20 @@ data class TacticToken(
 /**
  * State holder for the tactic board. Token positions are stored in field
  * metres so the board scales correctly to any screen size.
+ *
+ * When a [TacticStorage] is provided, saved positions are restored once in
+ * [init] and re-persisted on every mutation, so the board survives app
+ * reloads. The presenter lives at App scope so it also survives navigation.
  */
-class TacticBoardPresenter {
+class TacticBoardPresenter(
+    private val storage: TacticStorage? = null,
+) {
     var tokens by mutableStateOf(defaultTokens())
+        private set
+
+    init {
+        storage?.read()?.let(::restoreFrom)
+    }
 
     fun moveToken(id: String, deltaFieldX: Float, deltaFieldY: Float) {
         tokens = tokens.map { token ->
@@ -28,6 +42,7 @@ class TacticBoardPresenter {
                 fieldY = (token.fieldY + deltaFieldY).coerceIn(0f, 20f),
             ) else token
         }
+        persist()
     }
 
     /** Moves the token to the end of the list so it renders on top while being dragged. */
@@ -36,7 +51,32 @@ class TacticBoardPresenter {
         tokens = tokens.filter { it.id != id } + token
     }
 
-    fun reset() { tokens = defaultTokens() }
+    /** Resets to the default formation and discards any saved positions. */
+    fun reset() {
+        tokens = defaultTokens()
+        storage?.clear()
+    }
+
+    private fun persist() {
+        storage?.save(serialize())
+    }
+
+    private fun serialize(): String =
+        Json.encodeToString(
+            PersistedTacticBoard.serializer(),
+            PersistedTacticBoard(tokens.map { PersistedToken(it.id, it.label, it.type, it.fieldX, it.fieldY) }),
+        )
+
+    /** Applies saved positions onto the current tokens, matched by id. */
+    private fun restoreFrom(json: String) {
+        val saved = runCatching {
+            Json.decodeFromString(PersistedTacticBoard.serializer(), json)
+        }.getOrNull() ?: return
+        val savedById = saved.tokens.associateBy { it.id }
+        tokens = tokens.map { token ->
+            savedById[token.id]?.let { token.copy(fieldX = it.fieldX, fieldY = it.fieldY) } ?: token
+        }
+    }
 
     private fun defaultTokens(): List<TacticToken> = buildList {
         // Home – 6-0 defense on 6m arc
@@ -63,3 +103,14 @@ class TacticBoardPresenter {
     }
 }
 
+@Serializable
+private data class PersistedToken(
+    val id: String,
+    val label: String,
+    val type: TokenType,
+    val fieldX: Float,
+    val fieldY: Float,
+)
+
+@Serializable
+private data class PersistedTacticBoard(val tokens: List<PersistedToken>)

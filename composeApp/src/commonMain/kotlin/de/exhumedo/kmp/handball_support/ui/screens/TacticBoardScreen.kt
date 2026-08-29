@@ -25,8 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,11 +52,6 @@ import androidx.compose.ui.unit.dp
 import de.exhumedo.kmp.handball_support.matchconsole.TacticBoardPresenter
 import de.exhumedo.kmp.handball_support.matchconsole.TacticToken
 import de.exhumedo.kmp.handball_support.matchconsole.TokenType
-import de.exhumedo.kmp.handball_support.persistence.TacticStorage
-import de.exhumedo.kmp.handball_support.persistence.tacticStorage
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
 import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
 import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
@@ -79,23 +72,10 @@ import kotlin.math.min
 @Composable
 fun TacticBoardScreen(
     presenter: TacticBoardPresenter,
-    storage: TacticStorage = tacticStorage(),
     debug: Boolean = false,
     onNavigateHome: () -> Unit,
 ) {
     var rotated by remember { mutableStateOf(false) }
-
-    // Restore saved token positions every time this destination becomes active.
-    LaunchedEffect(Unit) {
-        storage.read()?.let { presenter.restore(it) }
-    }
-
-    // Persist positions after every drag ends.
-    val tokenHash = presenter.tokens.hashCode()
-    DisposableEffect(tokenHash) {
-        storage.save(presenter.serialize())
-        onDispose { }
-    }
 
     AppTheme {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -108,10 +88,7 @@ fun TacticBoardScreen(
                         Text(if (rotated) "Querformat" else "Hochformat")
                     }
                     Spacer(Modifier.width(Dimens.spaceSm))
-                    DhbButton(onClick = {
-                        presenter.reset()
-                        storage.clear()
-                    }) {
+                    DhbButton(onClick = presenter::reset) {
                         Icon(Icons.Filled.Refresh, contentDescription = "Zurücksetzen")
                     }
                     Spacer(Modifier.width(Dimens.spaceSm))
@@ -443,30 +420,12 @@ private val GoalGray   = Color(0xFFBDBDBD)
 private val GuestBlue  = Color(0xFF1565C0)
 private val BallYellow = Color(0xFFFFD740)
 
-@Serializable
-private data class PersistedToken(val id: String, val label: String, val type: TokenType, val fieldX: Float, val fieldY: Float)
-
-@Serializable
-private data class PersistedTacticBoard(val tokens: List<PersistedToken>)
-
-private fun TacticBoardPresenter.serialize(): String =
-    Json.encodeToString(PersistedTacticBoard(tokens.map { PersistedToken(it.id, it.label, it.type, it.fieldX, it.fieldY) }))
-
-private fun TacticBoardPresenter.restore(json: String) {
-    val saved = runCatching { Json.decodeFromString<PersistedTacticBoard>(json) }.getOrNull() ?: return
-    val savedById = saved.tokens.associateBy { it.id }
-    tokens = tokens.map { token ->
-        savedById[token.id]?.let { token.copy(fieldX = it.fieldX, fieldY = it.fieldY) } ?: token
-    }
-}
-
 
 @Preview
 @Composable
 private fun TacticBoardScreenPreview() {
     TacticBoardScreen(
         presenter = remember { TacticBoardPresenter() },
-        storage = de.exhumedo.kmp.handball_support.persistence.InMemoryTacticStorage(),
         onNavigateHome = {},
     )
 }

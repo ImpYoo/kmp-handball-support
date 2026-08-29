@@ -36,6 +36,7 @@ import de.exhumedo.kmp.handball_support.persistence.DrawingPadPresenter
 import de.exhumedo.kmp.handball_support.persistence.SessionManager
 import de.exhumedo.kmp.handball_support.persistence.SessionMapper
 import de.exhumedo.kmp.handball_support.persistence.drawingStorage
+import de.exhumedo.kmp.handball_support.persistence.tacticStorage
 import de.exhumedo.kmp.handball_support.ui.ApplicationSelectionScreen
 import de.exhumedo.kmp.handball_support.ui.CoachingSessionScreen
 import de.exhumedo.kmp.handball_support.ui.CoachingSetupScreen
@@ -69,7 +70,7 @@ fun App() {
     val scoreboardPresenter = remember { ScoreboardPresenter() }
     val rosterPresenter = remember { RosterPresenter() }
     val matchSetupPresenter = remember { MatchSetupPresenter() }
-    val tacticBoardPresenter = remember { TacticBoardPresenter() }
+    val tacticBoardPresenter = remember { TacticBoardPresenter(tacticStorage()) }
     val drawingPadPresenter = remember { DrawingPadPresenter(drawingStorage()) }
     val sessionManager = remember { SessionManager() }
     val scope = rememberCoroutineScope()
