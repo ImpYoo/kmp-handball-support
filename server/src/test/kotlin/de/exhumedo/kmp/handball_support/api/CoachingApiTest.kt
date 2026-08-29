@@ -45,7 +45,7 @@ class CoachingApiTest {
         val catalogBody = catalogResponse.bodyAsText()
         assertTrue(catalogBody.contains("a1-spielgedanke-vorteil"))
 
-        val token = issueToken("coach", "CoachPass123!")
+        val token = issueToken("referee-coach", "RefereeCoachPass123!")
 
         // Create
         val createResponse = client.post("/api/coaching/evaluations") {
@@ -95,14 +95,14 @@ class CoachingApiTest {
             )
         }
 
-        val token = issueToken("coach", "CoachPass123!")
+        val token = issueToken("referee-coach", "RefereeCoachPass123!")
 
         val response = client.post("/api/coaching/evaluations") {
             header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             header(HttpHeaders.Authorization, "Bearer $token")
             setBody(
                 sampleEvaluationRequest()
-                    .replace("\"evaluatorUsername\": \"coach\"", "\"evaluatorUsername\": \"someone-else\"")
+                    .replace("\"evaluatorUsername\": \"referee-coach\"", "\"evaluatorUsername\": \"someone-else\"")
             )
         }
         assertEquals(HttpStatusCode.Forbidden, response.status)
@@ -144,7 +144,7 @@ class CoachingApiTest {
             )
         }
 
-        val token = issueToken("coach", "CoachPass123!")
+        val token = issueToken("referee-coach", "RefereeCoachPass123!")
 
         val createResponse = client.post("/api/coaching/evaluations") {
             header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
@@ -175,7 +175,7 @@ class CoachingApiTest {
             "homeTeam": "THW Kiel",
             "awayTeam": "SC Magdeburg"
           },
-          "evaluatorUsername": "coach",
+          "evaluatorUsername": "referee-coach",
           "firstReferee": { "personId": "R1", "firstName": "Max", "lastName": "Mustermann" },
           "secondReferee": { "personId": "R2", "firstName": "Anna", "lastName": "Schmidt" },
           "rootCauseCounts": {

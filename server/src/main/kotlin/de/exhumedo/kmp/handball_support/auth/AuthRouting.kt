@@ -61,7 +61,16 @@ fun Application.configureAuthRouting(
             // ── Logout ─────────────────────────────────────────────────────────
             // POST /api/auth/logout  →  invalidate all active tokens for the caller
             post("/logout") {
-                val actor = call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) ?: return@post
+                val actor = call.authorize(
+                    tokenService,
+                    authUserStore,
+                    AuthRole.ADMIN,
+                    AuthRole.REFEREE,
+                    AuthRole.COACH,
+                    AuthRole.VIEWER,
+                    AuthRole.REFEREE_COACH,
+                    AuthRole.REFEREE_COACH_ADMIN,
+                ) ?: return@post
                 authUserService.revokeTokens(actorUsername = actor.subject, username = actor.subject)
                 call.respond(HttpStatusCode.NoContent)
             }
@@ -71,7 +80,16 @@ fun Application.configureAuthRouting(
 
                 // GET /api/auth/users/me  →  own profile
                 get {
-                    val actor = call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) ?: return@get
+                    val actor = call.authorize(
+                        tokenService,
+                        authUserStore,
+                        AuthRole.ADMIN,
+                        AuthRole.REFEREE,
+                        AuthRole.COACH,
+                        AuthRole.VIEWER,
+                        AuthRole.REFEREE_COACH,
+                        AuthRole.REFEREE_COACH_ADMIN,
+                    ) ?: return@get
                     val user = authUserService.findByUsername(actor.subject)
                         ?: throw AuthUserNotFoundException(actor.subject)
                     call.respond(HttpStatusCode.OK, user.toResponseDto())
@@ -79,7 +97,16 @@ fun Application.configureAuthRouting(
 
                 // POST /api/auth/users/me/change-password  →  change own password (requires current password)
                 post("/change-password") {
-                    val actor = call.authorize(tokenService, authUserStore, AuthRole.ADMIN, AuthRole.REFEREE, AuthRole.VIEWER) ?: return@post
+                    val actor = call.authorize(
+                        tokenService,
+                        authUserStore,
+                        AuthRole.ADMIN,
+                        AuthRole.REFEREE,
+                        AuthRole.COACH,
+                        AuthRole.VIEWER,
+                        AuthRole.REFEREE_COACH,
+                        AuthRole.REFEREE_COACH_ADMIN,
+                    ) ?: return@post
                     val request = call.receive<ChangePasswordRequestDto>()
                     val updated = authUserService.changePassword(
                         actorUsername = actor.subject,
@@ -93,12 +120,23 @@ fun Application.configureAuthRouting(
             // ── Admin: user management ─────────────────────────────────────────
             route("/users") {
                 get {
-                    if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN) == null) return@get
+                    if (call.authorize(
+                            tokenService,
+                            authUserStore,
+                            AuthRole.ADMIN,
+                            AuthRole.REFEREE_COACH_ADMIN,
+                        ) == null
+                    ) return@get
                     call.respond(HttpStatusCode.OK, authUserService.findAll().map { it.toResponseDto() })
                 }
 
                 post {
-                    val actor = call.authorize(tokenService, authUserStore, AuthRole.ADMIN) ?: return@post
+                    val actor = call.authorize(
+                        tokenService,
+                        authUserStore,
+                        AuthRole.ADMIN,
+                        AuthRole.REFEREE_COACH_ADMIN,
+                    ) ?: return@post
 
                     val request = call.receive<CreateAuthUserRequestDto>()
                     val created = authUserService.createUser(
@@ -112,7 +150,13 @@ fun Application.configureAuthRouting(
                 }
 
                 get("/{username}") {
-                    if (call.authorize(tokenService, authUserStore, AuthRole.ADMIN) == null) return@get
+                    if (call.authorize(
+                            tokenService,
+                            authUserStore,
+                            AuthRole.ADMIN,
+                            AuthRole.REFEREE_COACH_ADMIN,
+                        ) == null
+                    ) return@get
                     val username = call.parameters["username"]
                         ?: return@get call.respondProblem(
                             status = HttpStatusCode.BadRequest,
@@ -126,7 +170,12 @@ fun Application.configureAuthRouting(
                 }
 
                 put("/{username}") {
-                    val actor = call.authorize(tokenService, authUserStore, AuthRole.ADMIN) ?: return@put
+                    val actor = call.authorize(
+                        tokenService,
+                        authUserStore,
+                        AuthRole.ADMIN,
+                        AuthRole.REFEREE_COACH_ADMIN,
+                    ) ?: return@put
 
                     val username = call.parameters["username"]
                         ?: return@put call.respondProblem(
@@ -147,7 +196,12 @@ fun Application.configureAuthRouting(
                 }
 
                 delete("/{username}") {
-                    val actor = call.authorize(tokenService, authUserStore, AuthRole.ADMIN) ?: return@delete
+                    val actor = call.authorize(
+                        tokenService,
+                        authUserStore,
+                        AuthRole.ADMIN,
+                        AuthRole.REFEREE_COACH_ADMIN,
+                    ) ?: return@delete
 
                     val username = call.parameters["username"]
                         ?: return@delete call.respondProblem(
@@ -164,7 +218,12 @@ fun Application.configureAuthRouting(
                 }
 
                 post("/{username}/revoke-tokens") {
-                    val actor = call.authorize(tokenService, authUserStore, AuthRole.ADMIN) ?: return@post
+                    val actor = call.authorize(
+                        tokenService,
+                        authUserStore,
+                        AuthRole.ADMIN,
+                        AuthRole.REFEREE_COACH_ADMIN,
+                    ) ?: return@post
                     val username = call.parameters["username"]
                         ?: return@post call.respondProblem(
                             status = HttpStatusCode.BadRequest,

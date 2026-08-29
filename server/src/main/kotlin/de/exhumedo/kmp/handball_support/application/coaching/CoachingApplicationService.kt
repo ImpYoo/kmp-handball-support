@@ -61,6 +61,8 @@ class CoachingApplicationService(
 
     fun findAll(filter: CoachingEvaluationFilter): List<RefereeCoachingEvaluation> = repository.findAll(filter)
 
+    fun delete(id: String): Boolean = repository.deleteById(id)
+
     fun buildReport(id: String): RefereeCoachingReport? {
         val evaluation = repository.findById(id) ?: return null
         return RefereeCoachingReportBuilder().build(evaluation)

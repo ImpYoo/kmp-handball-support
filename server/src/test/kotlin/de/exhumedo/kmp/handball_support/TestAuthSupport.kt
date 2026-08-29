@@ -74,9 +74,14 @@ internal fun createTestAuthUserStore(
         role = AuthRole.VIEWER,
     )
     store.createUser(
-        username = "coach",
-        password = "CoachPass123!",
-        role = AuthRole.COACH,
+        username = "referee-coach",
+        password = "RefereeCoachPass123!",
+        role = AuthRole.REFEREE_COACH,
+    )
+    store.createUser(
+        username = "referee-coach-admin",
+        password = "RefereeCoachAdminPass123!",
+        role = AuthRole.REFEREE_COACH_ADMIN,
     )
 
     return store

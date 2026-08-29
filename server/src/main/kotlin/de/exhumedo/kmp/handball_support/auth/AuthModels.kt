@@ -17,8 +17,16 @@ enum class AuthRole(
     /** Observer / coach access for creating and reading evaluations. */
     COACH("coach"),
 
+    /** Referee coach: can create/edit own coaching evaluations. */
+    REFEREE_COACH("referee-coach"),
+
+    /** Referee coach admin: can manage coaches and access all coaching evaluations. */
+    REFEREE_COACH_ADMIN("referee-coach-admin"),
+
     /** Read-only access. */
-    VIEWER("viewer"), ;
+    VIEWER("viewer"),
+
+    ;
 
     companion object {
         /**
@@ -33,6 +41,9 @@ enum class AuthRole(
                 ?: throw IllegalArgumentException("Unsupported auth role '$value'.")
         }
     }
+
+    // Kept for backward compatibility; prefer the companion object function.
+    fun fromValue(value: String): AuthRole = Companion.fromValue(value)
 }
 
 /**
