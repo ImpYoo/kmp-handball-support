@@ -52,6 +52,20 @@ sealed interface AppRoute {
     ) : AppRoute
 
     @Serializable
+    @SerialName("coaching-list")
+    data class CoachingList(
+        val tab: String? = null,
+    ) : AppRoute
+
+    @Serializable
+    @SerialName("coaching-admin")
+    data object CoachingAdmin : AppRoute
+
+    @Serializable
+    @SerialName("change-password")
+    data object ChangePassword : AppRoute
+
+    @Serializable
     @SerialName("coaching")
     data object RefereeCoaching : AppRoute
 

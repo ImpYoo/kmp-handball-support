@@ -83,6 +83,9 @@ fun rememberAppNavigator(
                     route.startsWith("vote/") -> {
                         entry.toRoute<AppRoute.Vote>().toPath()
                     }
+                    route.startsWith("coaching-list") -> entry.toRoute<AppRoute.CoachingList>().toPath()
+                    route.startsWith("coaching-admin") -> "coaching-admin"
+                    route.startsWith("change-password") -> "change-password"
                     route.startsWith("coaching") -> "coaching"
                     route.startsWith("session") -> {
                         val session = entry.toRoute<AppRoute.CoachingSession>()

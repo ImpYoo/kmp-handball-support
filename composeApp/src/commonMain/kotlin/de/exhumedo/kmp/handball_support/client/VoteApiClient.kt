@@ -4,6 +4,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.put
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -74,6 +76,73 @@ class VoteApiClient(
             header("Content-Type", ContentType.Application.Json)
             accept(ContentType.Application.Json)
             if (!token.isNullOrBlank()) bearerAuth(token)
+            setBody(payload)
+        }
+        return response.decode()
+    }
+
+    suspend fun listUsers(
+        baseUrl: String,
+        token: String,
+    ): List<AuthUserResponseDto> {
+        val response = httpClient.get("${normalizeBaseUrl(baseUrl)}/api/auth/users") {
+            accept(ContentType.Application.Json)
+            bearerAuth(token)
+        }
+        return response.decode()
+    }
+
+    suspend fun createUser(
+        baseUrl: String,
+        token: String,
+        payload: CreateAuthUserRequestDto,
+    ): AuthUserResponseDto {
+        val response = httpClient.post("${normalizeBaseUrl(baseUrl)}/api/auth/users") {
+            header("Content-Type", ContentType.Application.Json)
+            accept(ContentType.Application.Json)
+            bearerAuth(token)
+            setBody(payload)
+        }
+        return response.decode()
+    }
+
+    suspend fun updateUser(
+        baseUrl: String,
+        token: String,
+        username: String,
+        payload: UpdateAuthUserRequestDto,
+    ): AuthUserResponseDto {
+        val response = httpClient.put("${normalizeBaseUrl(baseUrl)}/api/auth/users/$username") {
+            header("Content-Type", ContentType.Application.Json)
+            accept(ContentType.Application.Json)
+            bearerAuth(token)
+            setBody(payload)
+        }
+        return response.decode()
+    }
+
+    suspend fun deleteUser(
+        baseUrl: String,
+        token: String,
+        username: String,
+    ) {
+        val response = httpClient.delete("${normalizeBaseUrl(baseUrl)}/api/auth/users/$username") {
+            bearerAuth(token)
+        }
+        if (!response.status.isSuccess()) {
+            throw VoteApiException(statusCode = response.status.value, message = response.bodyAsText())
+        }
+    }
+
+    suspend fun changePassword(
+        baseUrl: String,
+        token: String,
+        payload: ChangePasswordRequestDto,
+    ): AuthUserResponseDto {
+        val response = httpClient.post("${normalizeBaseUrl(baseUrl)}/api/auth/users/me/change-password") {
+            header("Content-Type", ContentType.Application.Json)
+            accept(ContentType.Application.Json)
+            bearerAuth(token)
             setBody(payload)
         }
         return response.decode()

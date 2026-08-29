@@ -44,6 +44,9 @@ fun parseDeepLink(raw: String): ParsedDeepLink {
             year = year,
         )
         normalized == "phases" -> AppRoute.Phases(day = day, month = month, year = year, showFilter = showFilter)
+        normalized == "coaching-list" -> AppRoute.CoachingList(tab = params["tab"])
+        normalized == "coaching-admin" -> AppRoute.CoachingAdmin
+        normalized == "change-password" -> AppRoute.ChangePassword
         normalized == "coaching" -> AppRoute.RefereeCoaching
         normalized == "session" -> AppRoute.CoachingSession(evaluationId = params["evaluationId"])
         normalized == "sheet" -> AppRoute.CoachingSheet

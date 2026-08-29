@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.accept
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -54,6 +55,55 @@ class CoachingApiClient(
         return response.decode()
     }
 
+    suspend fun listMyEvaluations(
+        baseUrl: String,
+        token: String,
+        gameId: String? = null,
+        from: String? = null,
+        to: String? = null,
+    ): List<CoachingEvaluationResponseDto> {
+        val response = httpClient.get("${normalizeBaseUrl(baseUrl)}/api/coaching/evaluations/mine") {
+            accept(ContentType.Application.Json)
+            bearerAuth(token)
+            gameId?.let { parameter("gameId", it) }
+            from?.let { parameter("from", it) }
+            to?.let { parameter("to", it) }
+        }
+        return response.decode()
+    }
+
+    suspend fun listAllEvaluations(
+        baseUrl: String,
+        token: String,
+        gameId: String? = null,
+        evaluatorUsername: String? = null,
+        from: String? = null,
+        to: String? = null,
+    ): List<CoachingEvaluationResponseDto> {
+        val response = httpClient.get("${normalizeBaseUrl(baseUrl)}/api/coaching/evaluations/all") {
+            accept(ContentType.Application.Json)
+            bearerAuth(token)
+            gameId?.let { parameter("gameId", it) }
+            evaluatorUsername?.let { parameter("evaluatorUsername", it) }
+            from?.let { parameter("from", it) }
+            to?.let { parameter("to", it) }
+        }
+        return response.decode()
+    }
+
+    suspend fun deleteEvaluation(
+        baseUrl: String,
+        token: String,
+        evaluationId: String,
+    ) {
+        val response = httpClient.delete("${normalizeBaseUrl(baseUrl)}/api/coaching/evaluations/$evaluationId") {
+            bearerAuth(token)
+        }
+        if (!response.status.isSuccess()) {
+            throw VoteApiException(statusCode = response.status.value, message = response.bodyAsText())
+        }
+    }
+
     suspend fun getEvaluation(
         baseUrl: String,
         token: String,
@@ -62,23 +112,6 @@ class CoachingApiClient(
         val response = httpClient.get("${normalizeBaseUrl(baseUrl)}/api/coaching/evaluations/$evaluationId") {
             accept(ContentType.Application.Json)
             bearerAuth(token)
-        }
-        return response.decode()
-    }
-
-    suspend fun listEvaluations(
-        baseUrl: String,
-        token: String,
-        gameId: String? = null,
-        refereePersonId: String? = null,
-        evaluatorUsername: String? = null,
-    ): List<CoachingEvaluationResponseDto> {
-        val response = httpClient.get("${normalizeBaseUrl(baseUrl)}/api/coaching/evaluations") {
-            accept(ContentType.Application.Json)
-            bearerAuth(token)
-            gameId?.let { parameter("gameId", it) }
-            refereePersonId?.let { parameter("refereePersonId", it) }
-            evaluatorUsername?.let { parameter("evaluatorUsername", it) }
         }
         return response.decode()
     }

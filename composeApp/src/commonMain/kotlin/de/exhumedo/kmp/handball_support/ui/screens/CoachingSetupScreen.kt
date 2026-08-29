@@ -53,12 +53,16 @@ fun CoachingSetupScreen(
     username: String,
     password: String,
     token: String?,
+    role: String?,
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLogin: () -> Unit,
     onLogout: () -> Unit,
     onResetAll: () -> Unit,
     onContinue: () -> Unit,
+    onOpenList: () -> Unit,
+    onOpenAdmin: () -> Unit,
+    onOpenChangePassword: () -> Unit,
     onNavigateHome: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
@@ -77,6 +81,14 @@ fun CoachingSetupScreen(
                         DhbButton(onClick = { showLoginDialog = true }) { Text("Anmelden") }
                     } else {
                         DhbButton(onClick = onLogout) { Text("Abmelden ($username)") }
+                        Spacer(Modifier.width(Dimens.spaceSm))
+                        DhbButton(onClick = onOpenChangePassword) { Text("Passwort") }
+                        Spacer(Modifier.width(Dimens.spaceSm))
+                        DhbButton(onClick = onOpenList) { Text("Übersicht") }
+                        if (role.equals("admin", ignoreCase = true) || role.equals("referee-coach-admin", ignoreCase = true)) {
+                            Spacer(Modifier.width(Dimens.spaceSm))
+                            DhbButton(onClick = onOpenAdmin) { Text("Admin") }
+                        }
                     }
                     Spacer(Modifier.width(Dimens.spaceSm))
                     DhbButton(onClick = onNavigateHome) { Text("Menü") }
@@ -210,12 +222,16 @@ private fun CoachingSetupScreenPreview() {
         username = "admin",
         password = "",
         token = null,
+        role = null,
         onUsernameChange = {},
         onPasswordChange = {},
         onLogin = {},
         onLogout = {},
         onResetAll = {},
         onContinue = {},
+        onOpenList = {},
+        onOpenAdmin = {},
+        onOpenChangePassword = {},
         onNavigateHome = {},
     )
 }

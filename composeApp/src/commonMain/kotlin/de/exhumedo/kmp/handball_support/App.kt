@@ -40,6 +40,8 @@ import de.exhumedo.kmp.handball_support.persistence.SessionMapper
 import de.exhumedo.kmp.handball_support.persistence.drawingStorage
 import de.exhumedo.kmp.handball_support.persistence.tacticStorage
 import de.exhumedo.kmp.handball_support.ui.ApplicationSelectionScreen
+import de.exhumedo.kmp.handball_support.ui.ChangePasswordScreen
+import de.exhumedo.kmp.handball_support.ui.CoachingListScreen
 import de.exhumedo.kmp.handball_support.ui.CoachingSessionScreen
 import de.exhumedo.kmp.handball_support.ui.CoachingSetupScreen
 import de.exhumedo.kmp.handball_support.ui.CoachingSheetScreen
@@ -51,6 +53,7 @@ import de.exhumedo.kmp.handball_support.ui.PhaseDetailScreen
 import de.exhumedo.kmp.handball_support.ui.PhasesScreen
 import de.exhumedo.kmp.handball_support.ui.RosterScreen
 import de.exhumedo.kmp.handball_support.ui.TacticBoardScreen
+import de.exhumedo.kmp.handball_support.ui.UserAdminScreen
 import de.exhumedo.kmp.handball_support.ui.VoteFormScreen
 import de.exhumedo.kmp.handball_support.ui.screens.LoadingOverlay
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
@@ -443,6 +446,7 @@ fun App() {
                             username = presenter.username,
                             password = presenter.password,
                             token = presenter.token,
+                            role = presenter.role,
                             onUsernameChange = { presenter.username = it },
                             onPasswordChange = { presenter.password = it },
                             onLogin = {
@@ -463,6 +467,15 @@ fun App() {
                             onContinue = {
                                 val id = coachingSync.evaluationId
                                 navigator.navigate(AppRoute.CoachingSession(evaluationId = id))
+                            },
+                            onOpenList = {
+                                navigator.navigate(AppRoute.CoachingList())
+                            },
+                            onOpenAdmin = {
+                                navigator.navigate(AppRoute.CoachingAdmin)
+                            },
+                            onOpenChangePassword = {
+                                navigator.navigate(AppRoute.ChangePassword)
                             },
                             onNavigateHome = {
                                 navigator.navigate(AppRoute.Home)
@@ -488,6 +501,59 @@ fun App() {
                                 navigator.navigate(AppRoute.Home)
                             },
                         )
+                    }
+
+                    composable<AppRoute.CoachingList> { entry ->
+                        val route = entry.toRoute<AppRoute.CoachingList>()
+                        val token = presenter.token
+                        if (token.isNullOrBlank()) {
+                            // Not signed in: bounce to coaching setup.
+                            LaunchedEffect(Unit) {
+                                navigator.navigate(AppRoute.RefereeCoaching)
+                            }
+                        } else {
+                            CoachingListScreen(
+                                token = token,
+                                username = presenter.username,
+                                role = presenter.role,
+                                initialTab = route.tab,
+                                onOpenEvaluation = { evaluationId ->
+                                    coachingSync.evaluationId = evaluationId
+                                    navigator.navigate(AppRoute.CoachingSession(evaluationId = evaluationId))
+                                },
+                                onNavigateHome = { navigator.navigate(AppRoute.Home) },
+                            )
+                        }
+                    }
+
+                    composable<AppRoute.CoachingAdmin> {
+                        val token = presenter.token
+                        if (token.isNullOrBlank()) {
+                            LaunchedEffect(Unit) {
+                                navigator.navigate(AppRoute.RefereeCoaching)
+                            }
+                        } else {
+                            UserAdminScreen(
+                                token = token,
+                                onNavigateHome = { navigator.navigate(AppRoute.Home) },
+                            )
+                        }
+                    }
+
+                    composable<AppRoute.ChangePassword> {
+                        val token = presenter.token
+                        if (token.isNullOrBlank()) {
+                            LaunchedEffect(Unit) {
+                                navigator.navigate(AppRoute.RefereeCoaching)
+                            }
+                        } else {
+                            ChangePasswordScreen(
+                                token = token,
+                                username = presenter.username,
+                                onPasswordChanged = { presenter.logout() },
+                                onNavigateHome = { navigator.navigate(AppRoute.Home) },
+                            )
+                        }
                     }
 
                     if (AppVariant.showMatchConsole) {
