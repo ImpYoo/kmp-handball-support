@@ -1,0 +1,21 @@
+referee-coaching.mydomain.tld {
+    reverse_proxy coaching-web:8080
+    encode gzip
+    header {
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+}
+
+referee-voting.mydomain.tld {
+    reverse_proxy /api/* handball-backend:8090
+    reverse_proxy /health handball-backend:8090
+    reverse_proxy /* rating-web:8080
+    encode gzip
+    header {
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+}

@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: handball-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - handball-net
+
+  coaching-web:
+    image: ghcr.io/impyoo/handball-coaching-web:latest
+    container_name: handball-coaching-web
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks:
+      - handball-net
+
+  rating-web:
+    image: ghcr.io/impyoo/handball-rating-web:latest
+    container_name: handball-rating-web
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks:
+      - handball-net
+
+  handball-backend:
+    image: ghcr.io/impyoo/handball-backend:latest
+    container_name: handball-backend
+    restart: unless-stopped
+    expose:
+      - "8090"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    networks:
+      - handball-net
+
+networks:
+  handball-net:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
