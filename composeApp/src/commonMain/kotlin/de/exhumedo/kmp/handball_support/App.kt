@@ -457,6 +457,7 @@ fun App() {
                     composable<AppRoute.CoachingSession> {
                         CoachingSessionScreen(
                             coaching = coachingPresenter,
+                            sync = coachingSync,
                             stopwatch = stopwatchPresenter,
                             scoreboard = scoreboardPresenter,
                             history = coachingHistoryPresenter,
