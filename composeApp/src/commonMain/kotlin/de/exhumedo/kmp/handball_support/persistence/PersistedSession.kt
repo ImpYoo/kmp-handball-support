@@ -27,6 +27,8 @@ data class PersistedMatchSetup(
     val guestTeamAbbreviation: String = "",
     val firstRefereeName: String = "",
     val secondRefereeName: String = "",
+    val gameId: String = "",
+    val matchDate: String = "",
 )
 
 @Serializable

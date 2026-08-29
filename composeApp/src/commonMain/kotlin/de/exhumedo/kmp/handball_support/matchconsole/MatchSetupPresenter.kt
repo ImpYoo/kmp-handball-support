@@ -18,6 +18,12 @@ class MatchSetupPresenter {
     var firstRefereeName by mutableStateOf("")
     var secondRefereeName by mutableStateOf("")
 
+    /** Optional external game identifier used to link a coaching evaluation to a match. */
+    var gameId by mutableStateOf("")
+
+    /** ISO-8601 date string (yyyy-MM-dd) of the match, used when uploading a coaching evaluation. */
+    var matchDate by mutableStateOf("")
+
     fun reset() {
         homeTeamName = ""
         homeTeamAbbreviation = ""
@@ -25,6 +31,8 @@ class MatchSetupPresenter {
         guestTeamAbbreviation = ""
         firstRefereeName = ""
         secondRefereeName = ""
+        gameId = ""
+        matchDate = ""
     }
 
     companion object {

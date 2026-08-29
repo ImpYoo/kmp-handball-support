@@ -22,7 +22,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import de.exhumedo.kmp.handball_support.coaching.CoachingHistoryPresenter
+import de.exhumedo.kmp.handball_support.coaching.CoachingSessionSync
 import de.exhumedo.kmp.handball_support.coaching.RefereeCoachingPresenter
+import de.exhumedo.kmp.handball_support.config.AppConfig
 import de.exhumedo.kmp.handball_support.config.AppVariant
 import de.exhumedo.kmp.handball_support.matchconsole.MatchSetupPresenter
 import de.exhumedo.kmp.handball_support.matchconsole.RosterPresenter
@@ -66,6 +68,7 @@ fun App() {
     val presenter = remember { VoteAppPresenter() }
     val coachingPresenter = remember { RefereeCoachingPresenter() }
     val coachingHistoryPresenter = remember { CoachingHistoryPresenter() }
+    val coachingSync = remember { CoachingSessionSync() }
     val stopwatchPresenter = remember { StopwatchPresenter() }
     val scoreboardPresenter = remember { ScoreboardPresenter() }
     val rosterPresenter = remember { RosterPresenter() }
@@ -102,6 +105,36 @@ fun App() {
             .distinctUntilChanged()
             .debounce(600)
             .collect { session -> sessionManager.save(session) }
+    }
+
+    // Online auto-save to the coaching REST API whenever the session has an identity.
+    LaunchedEffect(
+        presenter.token,
+        matchSetupPresenter.gameId,
+        matchSetupPresenter.matchDate,
+    ) {
+        val token = presenter.token
+        val baseUrl = AppConfig.baseApiUrl
+        if (token.isNullOrBlank() || baseUrl.isBlank()) {
+            coachingSync.stopAutoSave()
+            return@LaunchedEffect
+        }
+        coachingSync.startAutoSave(
+            scope = this,
+            baseUrl = baseUrl,
+            token = token,
+            gameId = matchSetupPresenter.gameId.ifBlank {
+                "${matchSetupPresenter.homeTeamName}-${matchSetupPresenter.guestTeamName}-${matchSetupPresenter.matchDate}"
+            },
+            matchDate = matchSetupPresenter.matchDate,
+            homeTeam = matchSetupPresenter.homeTeamName,
+            awayTeam = matchSetupPresenter.guestTeamName,
+            evaluatorUsername = presenter.username,
+            firstRefereeName = matchSetupPresenter.firstRefereeName,
+            secondRefereeName = matchSetupPresenter.secondRefereeName,
+            criteriaFlow = { coachingPresenter.criteria },
+            comment = { "" },
+        )
     }
 
     // Show the loading overlay immediately on first composition so the very first

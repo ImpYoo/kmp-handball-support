@@ -45,6 +45,34 @@ fun MatchSetupForm(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
     ) {
+        FormCard(title = "Spielinformationen") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = setup.gameId,
+                    onValueChange = { setup.gameId = it },
+                    label = { Text("Spiel-ID") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("optional") },
+                )
+                Spacer(Modifier.width(Dimens.spaceMd))
+                OutlinedTextField(
+                    value = setup.matchDate,
+                    onValueChange = { setup.matchDate = it },
+                    label = { Text("Datum") },
+                    singleLine = true,
+                    modifier = Modifier.width(140.dp),
+                    placeholder = { Text("yyyy-MM-dd") },
+                )
+            }
+            Spacer(Modifier.height(Dimens.spaceSm))
+            Text(
+                text = "Spiel-ID und Datum werden beim Online-Speichern der Bewertung übertragen.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         FormCard(title = "Mannschaften") {
             TeamRow(
                 teamLabel = "Heim",

@@ -37,6 +37,8 @@ object SessionMapper {
             guestTeamAbbreviation = matchSetup.guestTeamAbbreviation,
             firstRefereeName = matchSetup.firstRefereeName,
             secondRefereeName = matchSetup.secondRefereeName,
+            gameId = matchSetup.gameId,
+            matchDate = matchSetup.matchDate,
         ),
         homePlayers = roster.homePlayers.map { it.toPersisted() },
         guestPlayers = roster.guestPlayers.map { it.toPersisted() },
@@ -75,6 +77,8 @@ object SessionMapper {
         matchSetup.guestTeamAbbreviation = session.matchSetup.guestTeamAbbreviation
         matchSetup.firstRefereeName = session.matchSetup.firstRefereeName
         matchSetup.secondRefereeName = session.matchSetup.secondRefereeName
+        matchSetup.gameId = session.matchSetup.gameId
+        matchSetup.matchDate = session.matchSetup.matchDate
 
         roster.restore(
             home = session.homePlayers.map { it.toPlayer() },
