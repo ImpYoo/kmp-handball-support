@@ -7,7 +7,7 @@ as two isolated public services:
 
 | Subdomain | Variant | What's inside |
 |---|---|---|
-| `referee-coaching.mydomain.tld` | coaching | Schiedsrichter-Coaching, Notizblock, Taktiktafel (no backend needed) |
+| `referee-coaching.mydomain.tld` | coaching | Schiedsrichter-Coaching, Notizblock, Taktiktafel (backend needed only for online save/report) |
 | `referee-voting.mydomain.tld` | rating + scoreboard | Spielbewertung plus time/scorekeeper modules (needs Ktor backend) |
 
 The FritzBox only exposes a single dynamic public IP via DynDNS
@@ -77,10 +77,11 @@ FritzBox public IP :443 →  192.168.178.143:443
 ├── Caddyfile
 ├── .env
 └── data/
-    ├── db/                 # SQLite files if used
-    ├── tournaments.json    # tournament/season IDs
-    ├── auth-users.json     # login users (backend)
-    └── evaluations.json    # persisted evaluations (backend)
+    ├── db/                          # SQLite files if used
+    ├── tournaments.json             # tournament/season IDs
+    ├── auth-users.json              # login users (backend)
+    ├── performance-evaluations.json # persisted table-official evaluations (backend)
+    └── coaching-evaluations.sqlite  # persisted referee coaching evaluations (backend)
 ```
 
 The `deploy/` folder in this repo already contains the compose file and
@@ -182,11 +183,14 @@ serve({
 });
 ```
 
-The coaching `index.html` needs no API base URL:
+The coaching `index.html` needs no API base URL unless you want online save/report:
 
 ```html
-<meta name="api-base-url" content="">
+<meta name="api-base-url" content="https://referee-coaching.mydomain.tld">
 ```
+
+Use an empty `content=""` if the coaching build should run fully offline with
+localStorage backup only.
 
 ### Rating image
 
@@ -238,7 +242,8 @@ EXTERNAL_API_KEY=change-me
 EXTERNAL_API_BASE_URL=https://api.sportradar.com/
 EXTERNAL_API_TOURNAMENTS_FILE=/app/data/tournaments.json
 AUTH_USERS_FILE=/app/data/auth-users.json
-PERFORMANCE_EVALUATIONS_FILE=/app/data/evaluations.json
+PERFORMANCE_EVALUATIONS_FILE=/app/data/performance-evaluations.json
+COACHING_EVALUATIONS_DB=/app/data/coaching-evaluations.sqlite
 ```
 
 Note: `CORS_ALLOWED_ORIGINS` must list `https://referee-voting.mydomain.tld` so

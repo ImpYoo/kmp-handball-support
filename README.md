@@ -132,18 +132,34 @@ Before exposing the server to the public internet, make sure that:
   known development JWT secret, which is insecure for public exposure.
 - `EXTERNAL_API_KEY` is the real Sportradar key. The server refuses to start with a
   placeholder value (e.g. `YOUR_API_KEY_HERE`) when `EXTERNAL_API_ENABLED=true`.
-- The `server/data/*.json` files are stored on persistent, backed-up storage with
-  appropriate file-system permissions (the JWT-protected stores contain hashed
-  passwords and audit-relevant data).
+- The `server/data/*.json` and `server/data/*.sqlite` files are stored on persistent,
+  backed-up storage with appropriate file-system permissions (the JWT-protected stores
+  contain hashed passwords and audit-relevant data).
 - The server is fronted by HTTPS-terminating infrastructure (e.g. a reverse proxy);
   the embedded Netty server serves plain HTTP only.
-- JSON persistence is a short-term choice. Replace it with SQLite or PostgreSQL before
-  the deployment grows beyond a single-node setup.
+
+### Referee coaching API
+
+The server exposes a coaching module REST API under `/api/coaching`:
+
+- `GET /api/coaching/catalog` — public criteria catalog (HVNB Beobachterbogen)
+- `POST /api/coaching/evaluations` — create/save an evaluation (admin/referee/coach)
+- `PUT /api/coaching/evaluations/:id` — update an evaluation (admin/referee/coach, own evaluations only unless admin)
+- `GET /api/coaching/evaluations` — list evaluations with optional filters
+- `GET /api/coaching/evaluations/:id` — fetch one evaluation
+- `GET /api/coaching/evaluations/:id/report` — computed result presentation
+
+Evaluations are stored in `COACHING_EVALUATIONS_DB` (default `server/data/coaching-evaluations.sqlite`).
+Scores are recomputed from stored root-cause counts using the existing domain rules,
+so the presentation cannot drift from the scoring logic.
 
 ### Production web deployment (coaching-only)
 
-For the coaching-only flow the backend is not needed. Build the web client and serve the
-static files:
+For the coaching-only flow the backend is **not required** for local drawings/tactics.
+If you want to use the online evaluation save/report features, the backend must be
+running and reachable (see `BASE_API_URL` / `api-base-url` meta tag).
+
+Build the web client and serve the static files:
 
 ```shell
 ./gradlew :composeApp:wasmJsBrowserProductionWebpack
