@@ -4,25 +4,25 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
  * Presenter that owns the drawing pad strokes and persists them via [DrawingStorage].
- * It lives at the App level so strokes survive navigation away/back.
+ * It lives at the App level so strokes survive navigation away/back; state is
+ * restored once in [init] and re-persisted on every mutation.
  */
-class DrawingPadPresenter(storage: DrawingStorage) {
+class DrawingPadPresenter(
+    private val storage: DrawingStorage,
+) {
 
     private val _strokes: SnapshotStateList<DrawnStroke> = mutableStateListOf()
     val strokes: List<DrawnStroke> get() = _strokes
 
     init {
-        storage.read()?.deserializeStrokes()?.let { saved ->
-            _strokes.addAll(saved)
-        }
+        _strokes.addAll(storage.read()?.deserializeStrokes().orEmpty())
     }
-
-    private var storage: DrawingStorage? = storage
 
     fun addStroke(points: List<Offset>, color: Color, strokeWidthDp: Float) {
         _strokes.add(DrawnStroke(points, color, strokeWidthDp))
@@ -38,13 +38,12 @@ class DrawingPadPresenter(storage: DrawingStorage) {
 
     fun clear() {
         _strokes.clear()
-        storage?.clear()
+        storage.clear()
     }
 
+    /** Persists the current list. Only called from mutations, never from init. */
     private fun persist() {
-        if (_strokes.isNotEmpty()) {
-            storage?.save(_strokes.toList().serialize())
-        }
+        if (_strokes.isEmpty()) storage.clear() else storage.save(_strokes.toList().serialize())
     }
 }
 
@@ -63,7 +62,7 @@ private data class SerializablePoint(val x: Float, val y: Float)
 @Serializable
 private data class SerializableStroke(
     val points: List<SerializablePoint>,
-    val color: Long,
+    val color: Long, // 32-bit ARGB
     val strokeWidthDp: Float,
 )
 
@@ -71,10 +70,10 @@ private data class SerializableStroke(
 private data class SerializableStrokeList(val strokes: List<SerializableStroke>)
 
 private fun DrawnStroke.toSerializable(): SerializableStroke =
-    SerializableStroke(points.map { SerializablePoint(it.x, it.y) }, color.value.toLong(), strokeWidthDp)
+    SerializableStroke(points.map { SerializablePoint(it.x, it.y) }, color.toArgb().toLong(), strokeWidthDp)
 
 private fun SerializableStroke.toDrawnStroke(): DrawnStroke =
-    DrawnStroke(points.map { Offset(it.x, it.y) }, Color(color), strokeWidthDp)
+    DrawnStroke(points.map { Offset(it.x, it.y) }, Color(color.toInt()), strokeWidthDp)
 
 private fun List<DrawnStroke>.serialize(): String =
     Json.encodeToString(SerializableStrokeList.serializer(), SerializableStrokeList(map { it.toSerializable() }))
