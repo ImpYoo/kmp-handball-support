@@ -16,7 +16,7 @@ services:
       - handball-net
 
   coaching-web:
-    image: ghcr.io/impyoo/handball-coaching-web:latest
+    image: handball-coaching-web:local
     container_name: handball-coaching-web
     restart: unless-stopped
     expose:
@@ -25,7 +25,7 @@ services:
       - handball-net
 
   rating-web:
-    image: ghcr.io/impyoo/handball-rating-web:latest
+    image: handball-rating-web:local
     container_name: handball-rating-web
     restart: unless-stopped
     expose:
@@ -34,7 +34,7 @@ services:
       - handball-net
 
   handball-backend:
-    image: ghcr.io/impyoo/handball-backend:latest
+    image: handball-backend:local
     container_name: handball-backend
     restart: unless-stopped
     expose:

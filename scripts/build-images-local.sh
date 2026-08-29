@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REGISTRY="${REGISTRY:-ghcr.io/impyoo}"
-VERSION="${1:-latest}"
+# Local-only build script. Builds all three images directly on the Docker host.
+# No registry or push is required.
+#
+# Run this on the machine that will run docker compose up -d.
 
-# Build and push images to a remote registry. Use this if you want CI or a
-# separate build machine to produce images.
+VARIANTS=("coaching" "rating")
 
-for variant in coaching rating; do
+for variant in "${VARIANTS[@]}"; do
     echo "Building $variant web variant..."
     ./gradlew ":composeApp:wasmJsBrowserProductionWebpack" -PappVariant="$variant"
 
@@ -20,8 +21,7 @@ for variant in coaching rating; do
     cp "composeApp/docker/index-$variant.html" "$buildDir/index.html"
     cp composeApp/docker/serve.js "$buildDir/"
 
-    docker build -t "${REGISTRY}/handball-${variant}-web:${VERSION}" -f "composeApp/docker/Dockerfile.$variant" "$buildDir"
-    docker push "${REGISTRY}/handball-${variant}-web:${VERSION}"
+    docker build -t "handball-${variant}-web:local" -f "composeApp/docker/Dockerfile.$variant" "$buildDir"
 done
 
 echo "Building backend..."
@@ -33,7 +33,6 @@ mkdir -p "$backendDir"
 cp server/build/libs/server-all.jar "$backendDir/"
 cp -r server/data "$backendDir/"
 
-docker build -t "${REGISTRY}/handball-backend:${VERSION}" -f server/Dockerfile "$backendDir"
-docker push "${REGISTRY}/handball-backend:${VERSION}"
+docker build -t handball-backend:local -f server/Dockerfile "$backendDir"
 
-echo "Done: ${VERSION}"
+echo "Done. Run 'docker compose -f deploy/docker-compose.yml up -d' to start."
