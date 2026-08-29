@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -204,34 +205,40 @@ fun TacticBoardScreen(
                         drawHandballCourt(scale = scale, ox = ox, oy = oy, rotated = rotated)
                     }
 
-                    // ── Draggable tokens ──────────────────────────────────────
+                    // ── Draggable tokens ──────────────────────────────
+                    // key() is essential: bringToFront() reorders this list during
+                    // onDragStart, and without stable keys the dragged chip's
+                    // pointerInput is torn down mid-gesture (drag dies after the
+                    // touch-slop pixels). With keys the node survives the reorder.
                     presenter.tokens.forEach { token ->
-                        val tokenCenter = fieldToScreen(
-                            fieldX = token.fieldX,
-                            fieldY = token.fieldY,
-                            scale = scale,
-                            ox = ox,
-                            oy = oy,
-                            rotated = rotated,
-                        )
+                        key(token.id) {
+                            val tokenCenter = fieldToScreen(
+                                fieldX = token.fieldX,
+                                fieldY = token.fieldY,
+                                scale = scale,
+                                ox = ox,
+                                oy = oy,
+                                rotated = rotated,
+                            )
 
-                        TokenChip(
-                            token = token,
-                            centerXPx = tokenCenter.x,
-                            centerYPx = tokenCenter.y,
-                            radiusPx = tokenRadius,
-                            density = density,
-                            onDragStart = { presenter.bringToFront(token.id) },
-                            onDragDelta = { dx, dy ->
-                                val deltaFieldX = if (rotated) dy / scale else dx / scale
-                                val deltaFieldY = if (rotated) -dx / scale else dy / scale
-                                presenter.moveToken(
-                                    id = token.id,
-                                    deltaFieldX = deltaFieldX,
-                                    deltaFieldY = deltaFieldY,
-                                )
-                            },
-                        )
+                            TokenChip(
+                                token = token,
+                                centerXPx = tokenCenter.x,
+                                centerYPx = tokenCenter.y,
+                                radiusPx = tokenRadius,
+                                density = density,
+                                onDragStart = { presenter.bringToFront(token.id) },
+                                onDragDelta = { dx, dy ->
+                                    val deltaFieldX = if (rotated) dy / scale else dx / scale
+                                    val deltaFieldY = if (rotated) -dx / scale else dy / scale
+                                    presenter.moveToken(
+                                        id = token.id,
+                                        deltaFieldX = deltaFieldX,
+                                        deltaFieldY = deltaFieldY,
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             }
