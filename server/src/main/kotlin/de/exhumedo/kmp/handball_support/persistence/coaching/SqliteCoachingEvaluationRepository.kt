@@ -32,7 +32,7 @@ class SqliteCoachingEvaluationRepository(
     init {
         require(dbPath.toString().isNotBlank()) { "dbPath must not be blank" }
         Files.createDirectories(dbPath.parent)
-        DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        openConnection().use { connection ->
             connection.createStatement().use { statement ->
                 CREATE_SCHEMA.split(";").map { it.trim() }.filter { it.isNotBlank() }.forEach { sql ->
                     statement.execute(sql)
@@ -41,8 +41,20 @@ class SqliteCoachingEvaluationRepository(
         }
     }
 
+    /**
+     * Opens a new SQLite connection with foreign-key enforcement enabled.
+     *
+     * SQLite disables `PRAGMA foreign_keys` by default and resets it per
+     * connection, so every connection must explicitly turn it on — otherwise
+     * `ON DELETE CASCADE` constraints silently do nothing.
+     */
+    private fun openConnection(): Connection =
+        DriverManager.getConnection("jdbc:sqlite:$dbPath").also { conn ->
+            conn.createStatement().use { it.execute("PRAGMA foreign_keys = ON") }
+        }
+
     override fun save(evaluation: RefereeCoachingEvaluation): RefereeCoachingEvaluation {
-        DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        openConnection().use { connection ->
             connection.autoCommit = false
             try {
                 // Upsert evaluation metadata
@@ -135,7 +147,7 @@ class SqliteCoachingEvaluationRepository(
     }
 
     override fun findById(id: String): RefereeCoachingEvaluation? {
-        return DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        return openConnection().use { connection ->
             connection.prepareStatement(SELECT_EVALUATION_BY_ID).use { ps ->
                 ps.setString(1, id)
                 ps.executeQuery().use { rs ->
@@ -161,7 +173,7 @@ class SqliteCoachingEvaluationRepository(
             append(" ORDER BY e.updated_at DESC")
         }
 
-        return DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        return openConnection().use { connection ->
             connection.prepareStatement(sql).use { ps ->
                 var idx = 1
                 filter.gameId?.let { ps.setString(idx++, it) }
@@ -181,7 +193,7 @@ class SqliteCoachingEvaluationRepository(
     }
 
     override fun deleteById(id: String): Boolean {
-        return DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        return openConnection().use { connection ->
             connection.prepareStatement(DELETE_EVALUATION).use { ps ->
                 ps.setString(1, id)
                 ps.executeUpdate() > 0

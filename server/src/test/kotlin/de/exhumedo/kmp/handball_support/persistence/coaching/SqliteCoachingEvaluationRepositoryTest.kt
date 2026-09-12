@@ -5,6 +5,7 @@ import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.CoachingGa
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.CoachingPerson
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.RefereeCoachingEvaluation
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.scoring.CriterionScoringService
+import java.sql.DriverManager
 import kotlin.io.path.createTempDirectory
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -80,6 +81,38 @@ class SqliteCoachingEvaluationRepositoryTest {
         assertTrue(repository.deleteById(evaluation.id))
         assertNull(repository.findById(evaluation.id))
         assertEquals(false, repository.deleteById(evaluation.id))
+    }
+
+    @Test
+    fun deleteByIdCascadesToChildTables() {
+        // Save an evaluation with root-cause counts and history entries,
+        // then verify that deleting it removes the child rows too.
+        // Without PRAGMA foreign_keys = ON the cascade silently does nothing.
+        val criteria = catalog.map { criterion ->
+            if (criterion.id == "a1-spielgedanke-vorteil") {
+                scoring.incrementRootCause(criterion, "a1-spielverstaendnis", "a1-schneller-anwurf")
+            } else criterion
+        }
+        val evaluation = sampleEvaluation(criteria)
+        repository.save(evaluation)
+
+        assertTrue(repository.deleteById(evaluation.id))
+
+        // Directly query the child tables to confirm cascaded deletion.
+        val dbUrl = "jdbc:sqlite:$dbPath"
+        DriverManager.getConnection(dbUrl).use { conn ->
+            conn.createStatement().use { stmt ->
+                val counts = stmt.executeQuery(
+                    "SELECT COUNT(*) FROM coaching_criterion_counts WHERE evaluation_id = '${evaluation.id}'"
+                ).use { rs -> rs.getInt(1) }
+                assertEquals(0, counts, "coaching_criterion_counts rows should be cascade-deleted")
+
+                val history = stmt.executeQuery(
+                    "SELECT COUNT(*) FROM coaching_history_entries WHERE evaluation_id = '${evaluation.id}'"
+                ).use { rs -> rs.getInt(1) }
+                assertEquals(0, history, "coaching_history_entries rows should be cascade-deleted")
+            }
+        }
     }
 
     private fun sampleEvaluation(
