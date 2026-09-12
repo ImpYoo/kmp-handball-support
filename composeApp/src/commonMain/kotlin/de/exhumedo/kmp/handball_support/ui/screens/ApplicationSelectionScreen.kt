@@ -42,6 +42,7 @@ import de.exhumedo.kmp.handball_support.config.AppVariant
 import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
 import de.exhumedo.kmp.handball_support.ui.theme.DhbRed
 import de.exhumedo.kmp.handball_support.ui.theme.Dimens
+import de.exhumedo.kmp.handball_support.ui.UserMenuButton
 
 /**
  * Landing screen: lets the user choose which application to use. Each option is
@@ -50,6 +51,11 @@ import de.exhumedo.kmp.handball_support.ui.theme.Dimens
  */
 @Composable
 fun ApplicationSelectionScreen(
+    username: String,
+    isLoggedIn: Boolean,
+    onOpenSettings: () -> Unit,
+    onLogout: () -> Unit,
+    onLogin: () -> Unit,
     onOpenPhases: () -> Unit,
     onOpenCoaching: () -> Unit,
     onOpenCoachingSheet: () -> Unit,
@@ -64,6 +70,15 @@ fun ApplicationSelectionScreen(
             DhbHeader(
                 title = "Handball Support",
                 subtitle = "Anwendung auswählen",
+                actions = {
+                    UserMenuButton(
+                        isLoggedIn = isLoggedIn,
+                        username = username,
+                        onSettings = onOpenSettings,
+                        onLogin = onLogin,
+                        onLogout = onLogout,
+                    )
+                },
             )
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -204,18 +219,23 @@ private fun ApplicationTile(
     }
 }
 
-private val CoachingAccent = Color(0xFF2E7D32)
-private val CoachingSheetAccent = Color(0xFF6A1B9A)
-private val MatchConsoleAccent = Color(0xFF1565C0)
-private val RosterAccent = Color(0xFFEF6C00)
-private val MatchSetupAccent = Color(0xFF00838F)
-private val DrawingAccent = Color(0xFF6D4C41)
-private val TacticAccent  = Color(0xFF00695C)
+private val CoachingAccent = DhbRed
+private val CoachingSheetAccent = DhbRed
+private val MatchConsoleAccent = DhbRed
+private val RosterAccent = DhbRed
+private val MatchSetupAccent = DhbRed
+private val DrawingAccent = DhbRed
+private val TacticAccent  = DhbRed
 
 @Preview
 @Composable
 private fun ApplicationSelectionScreenPreview() {
     ApplicationSelectionScreen(
+        username = "",
+        isLoggedIn = false,
+        onOpenSettings = {},
+        onLogout = {},
+        onLogin = {},
         onOpenPhases = {},
         onOpenCoaching = {},
         onOpenCoachingSheet = {},

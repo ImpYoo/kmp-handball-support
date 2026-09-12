@@ -1,12 +1,16 @@
 package de.exhumedo.kmp.handball_support.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,10 +19,15 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
@@ -49,7 +58,7 @@ import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
 import de.exhumedo.kmp.handball_support.ui.theme.Dimens
 import kotlinx.coroutines.launch
 
-private val MANAGEABLE_ROLES = listOf("admin", "referee", "coach", "viewer", "referee-coach", "referee-coach-admin")
+private val MANAGEABLE_ROLES = listOf("admin", "referee-coach-admin", "referee-coach", "referee")
 
 /**
  * Admin UI for managing auth users. Only users with `admin` or `referee-coach-admin`
@@ -60,6 +69,8 @@ private val MANAGEABLE_ROLES = listOf("admin", "referee", "coach", "viewer", "re
 fun UserAdminScreen(
     token: String,
     onNavigateHome: () -> Unit,
+    showHeader: Boolean = true,
+    onBackToHub: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val client = remember { VoteApiClient() }
@@ -87,18 +98,29 @@ fun UserAdminScreen(
 
     AppTheme {
         Column(modifier = Modifier.fillMaxSize()) {
-            DhbHeader(
-                title = "Benutzerverwaltung",
-                subtitle = "Rollen verwalten",
-                onLogoClick = onNavigateHome,
-                actions = {
+            if (showHeader) {
+                DhbHeader(
+                    title = "Benutzerverwaltung",
+                    subtitle = "Rollen verwalten",
+                    onLogoClick = onNavigateHome,
+                    actions = {
+                        DhbButton(onClick = { load() }) { Text("Aktualisieren") }
+                        Spacer(Modifier.width(Dimens.spaceSm))
+                        DhbButton(onClick = { showCreateDialog = true }) { Text("Benutzer anlegen") }
+                    },
+                )
+            }
+            if (!showHeader) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceMd),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd, Alignment.End),
+                ) {
                     DhbButton(onClick = { load() }) { Text("Aktualisieren") }
-                    Spacer(Modifier.width(Dimens.spaceSm))
                     DhbButton(onClick = { showCreateDialog = true }) { Text("Benutzer anlegen") }
-                    Spacer(Modifier.width(Dimens.spaceSm))
-                    DhbButton(onClick = onNavigateHome) { Text("Menü") }
-                },
-            )
+                }
+            }
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.TopCenter,
@@ -239,46 +261,58 @@ private fun UserAdminCard(
         shadowElevation = Dimens.cardElevation,
     ) {
         Column(modifier = Modifier.padding(Dimens.spaceLg)) {
-            Text(
-                text = user.username,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(Dimens.spaceSm))
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-            ) {
-                OutlinedTextField(
-                    value = user.role,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Rolle") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = user.username,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
                 )
-                ExposedDropdownMenu(
+                DhbButton(onClick = onDelete) { Text("Löschen") }
+            }
+            Spacer(Modifier.height(Dimens.spaceMd))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
+            ) {
+                ExposedDropdownMenuBox(
                     expanded = expanded,
-                    onDismissRequest = { expanded = false },
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.weight(1f),
                 ) {
-                    MANAGEABLE_ROLES.forEach { role ->
-                        DropdownMenuItem(
-                            text = { Text(role) },
-                            onClick = {
-                                expanded = false
-                                onRoleChange(role)
-                            },
-                        )
+                    OutlinedTextField(
+                        value = user.role,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Rolle") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                    ) {
+                        MANAGEABLE_ROLES.forEach { role ->
+                            DropdownMenuItem(
+                                text = { Text(role) },
+                                onClick = {
+                                    expanded = false
+                                    onRoleChange(role)
+                                },
+                            )
+                        }
                     }
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Aktiviert",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.width(Dimens.spaceSm))
+                    Switch(checked = user.enabled, onCheckedChange = onEnabledChange)
+                }
             }
-            Spacer(Modifier.height(Dimens.spaceSm))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Aktiviert", modifier = Modifier.weight(1f))
-                Switch(checked = user.enabled, onCheckedChange = onEnabledChange)
-            }
-            Spacer(Modifier.height(Dimens.spaceSm))
-            DhbButton(onClick = onDelete) { Text("Löschen") }
         }
     }
 }
@@ -291,7 +325,7 @@ private fun CreateUserDialog(
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var role by remember { mutableStateOf("coach") }
+    var role by remember { mutableStateOf(MANAGEABLE_ROLES.first()) }
     var expanded by remember { mutableStateOf(false) }
 
     DhbDialog(
@@ -314,6 +348,8 @@ private fun CreateUserDialog(
                 onValueChange = { password = it },
                 label = { Text("Passwort") },
                 singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
             )
             ExposedDropdownMenuBox(

@@ -12,6 +12,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +34,7 @@ import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
 import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
 import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
 import de.exhumedo.kmp.handball_support.ui.theme.Dimens
+import de.exhumedo.kmp.handball_support.ui.UserMenuButton
 import kotlinx.coroutines.launch
 
 /**
@@ -40,6 +45,8 @@ fun ChangePasswordScreen(
     token: String,
     username: String,
     onPasswordChanged: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onLogout: () -> Unit,
     onNavigateHome: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -88,7 +95,13 @@ fun ChangePasswordScreen(
                 subtitle = username,
                 onLogoClick = onNavigateHome,
                 actions = {
-                    DhbButton(onClick = onNavigateHome) { Text("Menü") }
+                    UserMenuButton(
+                        isLoggedIn = true,
+                        username = username,
+                        onSettings = onOpenSettings,
+                        onLogin = { },
+                        onLogout = onLogout,
+                    )
                 },
             )
             Box(
@@ -112,6 +125,8 @@ fun ChangePasswordScreen(
                         onValueChange = { currentPassword = it },
                         label = { Text("Aktuelles Passwort") },
                         singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     OutlinedTextField(
@@ -119,6 +134,8 @@ fun ChangePasswordScreen(
                         onValueChange = { newPassword = it },
                         label = { Text("Neues Passwort") },
                         singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     OutlinedTextField(
@@ -126,6 +143,8 @@ fun ChangePasswordScreen(
                         onValueChange = { confirmPassword = it },
                         label = { Text("Neues Passwort wiederholen") },
                         singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     if (message.isNotBlank()) {
@@ -150,6 +169,8 @@ private fun ChangePasswordScreenPreview() {
         token = "dummy",
         username = "coach",
         onPasswordChanged = {},
+        onOpenSettings = {},
+        onLogout = {},
         onNavigateHome = {},
     )
 }
