@@ -45,10 +45,15 @@ fun parseDeepLink(raw: String): ParsedDeepLink {
         )
         normalized == "phases" -> AppRoute.Phases(day = day, month = month, year = year, showFilter = showFilter)
         normalized == "coaching-list" -> AppRoute.CoachingList(tab = params["tab"])
-        normalized == "coaching-admin" -> AppRoute.CoachingAdmin
+        normalized == "admin" -> AppRoute.Admin
+        normalized == "settings" -> AppRoute.Settings
         normalized == "change-password" -> AppRoute.ChangePassword
         normalized == "coaching" -> AppRoute.RefereeCoaching
         normalized == "session" -> AppRoute.CoachingSession(evaluationId = params["evaluationId"])
+        normalized.startsWith("coaching-report/") -> {
+            val id = normalized.removePrefix("coaching-report/")
+            AppRoute.CoachingReport(evaluationId = id)
+        }
         normalized == "sheet" -> AppRoute.CoachingSheet
         normalized == "clock" -> AppRoute.MatchConsole
         normalized == "roster" -> AppRoute.Roster

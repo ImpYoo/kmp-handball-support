@@ -29,10 +29,12 @@ fun AppRoute.toPath(): String = when (this) {
     is AppRoute.PhaseDetail -> "phases/$phaseId" + filterQuery(day, month, year)
     is AppRoute.Vote -> "phases/$phaseId/matches/$matchId" + filterQuery(day, month, year)
     is AppRoute.CoachingList -> "coaching-list" + queryString("tab" to tab)
-    AppRoute.CoachingAdmin -> "coaching-admin"
+    AppRoute.Admin -> "admin"
+    AppRoute.Settings -> "settings"
     AppRoute.ChangePassword -> "change-password"
     AppRoute.RefereeCoaching -> "coaching"
     is AppRoute.CoachingSession -> "session" + queryString("evaluationId" to evaluationId)
+    is AppRoute.CoachingReport -> "coaching-report/$evaluationId"
     AppRoute.CoachingSheet -> "sheet"
     AppRoute.MatchConsole -> "clock"
     AppRoute.Roster -> "roster"

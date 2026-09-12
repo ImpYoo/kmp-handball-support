@@ -58,8 +58,12 @@ sealed interface AppRoute {
     ) : AppRoute
 
     @Serializable
-    @SerialName("coaching-admin")
-    data object CoachingAdmin : AppRoute
+    @SerialName("admin")
+    data object Admin : AppRoute
+
+    @Serializable
+    @SerialName("settings")
+    data object Settings : AppRoute
 
     @Serializable
     @SerialName("change-password")
@@ -73,6 +77,12 @@ sealed interface AppRoute {
     @SerialName("session")
     data class CoachingSession(
         val evaluationId: String? = null,
+    ) : AppRoute
+
+    @Serializable
+    @SerialName("coaching-report")
+    data class CoachingReport(
+        val evaluationId: String,
     ) : AppRoute
 
     @Serializable
