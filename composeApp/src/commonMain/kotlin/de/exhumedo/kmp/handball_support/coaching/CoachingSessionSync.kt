@@ -1,6 +1,7 @@
 package de.exhumedo.kmp.handball_support.coaching
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import de.exhumedo.kmp.handball_support.client.CoachingApiClient
@@ -8,8 +9,10 @@ import de.exhumedo.kmp.handball_support.client.CoachingGameDto
 import de.exhumedo.kmp.handball_support.client.CoachingPersonDto
 import de.exhumedo.kmp.handball_support.client.CoachingReportResponseDto
 import de.exhumedo.kmp.handball_support.client.CreateCoachingEvaluationRequestDto
+import de.exhumedo.kmp.handball_support.persistence.PendingSyncEntry
+import de.exhumedo.kmp.handball_support.persistence.PendingSyncStore
+import de.exhumedo.kmp.handball_support.persistence.pendingSyncStore
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.Criterion
-import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.ScoringConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.FlowPreview
@@ -19,7 +22,10 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Cross-cutting coordinator for the referee coaching session.
@@ -27,13 +33,14 @@ import kotlin.time.Duration.Companion.seconds
  * - Keeps the locally persisted session state authoritative (offline backup).
  * - Sends debounced snapshots to the backend when a token is available and the
  *   base URL is reachable.
- * - Only uploads when the coaching payload actually changes (criteria counts,
- *   history entries, setup fields).
+ * - When sync fails (offline / no token), enqueues the payload in a persistent
+ *   local queue so it can be drained later when connectivity returns.
  * - Surfaces the last server-side report so the UI can render it without
  *   recomputing presentation in the client.
  */
 class CoachingSessionSync(
     private val apiClient: CoachingApiClient = CoachingApiClient(),
+    private val syncStore: PendingSyncStore = pendingSyncStore(),
 ) {
     /** Latest server-side evaluation id; null until first successful upload. */
     var evaluationId by mutableStateOf<String?>(null)
@@ -46,7 +53,15 @@ class CoachingSessionSync(
     var status by mutableStateOf<SyncStatus>(SyncStatus.Idle)
         private set
 
+    /** Number of evaluations waiting in the offline queue. */
+    var pendingQueueSize by mutableIntStateOf(0)
+        private set
+
     private var pendingJob: Job? = null
+
+    init {
+        pendingQueueSize = syncStore.pendingCount()
+    }
 
     /**
      * Start reactive auto-save.
@@ -69,7 +84,7 @@ class CoachingSessionSync(
                 .distinctUntilChanged { old, new -> old.isContentEqualTo(new) }
                 .collectLatest { request ->
                     if (token.isNullOrBlank()) {
-                        status = SyncStatus.Offline("No API configured or not signed in")
+                        enqueueOffline(request, reason = "Not signed in")
                         return@collectLatest
                     }
                     if (request.evaluatorUsername.isBlank()) {
@@ -77,7 +92,7 @@ class CoachingSessionSync(
                         return@collectLatest
                     }
                     if (baseUrl.isBlank()) {
-                        status = SyncStatus.Offline("No API configured")
+                        enqueueOffline(request, reason = "No API configured")
                         return@collectLatest
                     }
                     status = SyncStatus.Syncing
@@ -93,7 +108,8 @@ class CoachingSessionSync(
                         report = freshReport
                         SyncStatus.Success("Saved at ${response.updatedAt}")
                     } catch (e: Exception) {
-                        SyncStatus.Error(e.message ?: "Unknown sync error")
+                        enqueueOffline(request, reason = e.message ?: "Network error")
+                        SyncStatus.Offline("Saved locally — will sync when online")
                     }
                 }
         }
@@ -103,6 +119,86 @@ class CoachingSessionSync(
         pendingJob?.cancel()
         pendingJob = null
     }
+
+    /**
+     * Drains the offline queue by attempting to sync each pending entry.
+     *
+     * Call this when a token and network become available. Entries that sync
+     * successfully are removed; failures remain in the queue for the next attempt.
+     *
+     * @return Number of entries successfully synced.
+     */
+    suspend fun drainQueue(baseUrl: String, token: String): Int {
+        val entries = syncStore.loadAll()
+        if (entries.isEmpty()) return 0
+
+        status = SyncStatus.Syncing
+        var synced = 0
+        val remaining = mutableListOf<PendingSyncEntry>()
+
+        for (entry in entries) {
+            try {
+                val response = apiClient.saveEvaluation(
+                    baseUrl = baseUrl,
+                    token = token,
+                    evaluationId = entry.evaluationId,
+                    payload = entry.payload,
+                )
+                // If this entry matches the current session, adopt the server id.
+                if (entry.evaluationId == evaluationId || entry.payload == lastPayload) {
+                    evaluationId = response.id
+                }
+                synced++
+            } catch (e: Exception) {
+                remaining.add(entry.copy(attemptCount = entry.attemptCount + 1))
+            }
+        }
+
+        syncStore.saveAll(remaining)
+        pendingQueueSize = remaining.size
+
+        status = if (remaining.isEmpty()) {
+            if (synced > 0) SyncStatus.Success("Synced $synced pending evaluation(s)") else SyncStatus.Idle
+        } else {
+            SyncStatus.Offline("${remaining.size} evaluation(s) still pending")
+        }
+
+        return synced
+    }
+
+    /** True if there are evaluations waiting to be synced. */
+    fun hasPending(): Boolean = syncStore.pendingCount() > 0
+
+    @OptIn(ExperimentalUuidApi::class)
+    private fun enqueueOffline(payload: CreateCoachingEvaluationRequestDto, reason: String) {
+        // Replace any existing entry for the same evaluation, or append a new one.
+        val existing = syncStore.loadAll()
+        val matching = existing.firstOrNull {
+            it.evaluationId == evaluationId && evaluationId != null
+        }
+        if (matching != null) {
+            // Update the existing entry's payload.
+            syncStore.saveAll(
+                existing.map {
+                    if (it.localId == matching.localId) it.copy(payload = payload) else it
+                }
+            )
+        } else {
+            syncStore.enqueue(
+                PendingSyncEntry(
+                    localId = Uuid.random().toString(),
+                    evaluationId = evaluationId,
+                    payload = payload,
+                    queuedAt = Clock.System.now().toString(),
+                )
+            )
+        }
+        lastPayload = payload
+        pendingQueueSize = syncStore.pendingCount()
+        status = SyncStatus.Offline("Saved locally — $reason")
+    }
+
+    private var lastPayload: CreateCoachingEvaluationRequestDto? = null
 
     private fun CreateCoachingEvaluationRequestDto.isContentEqualTo(other: CreateCoachingEvaluationRequestDto): Boolean {
         return game == other.game &&

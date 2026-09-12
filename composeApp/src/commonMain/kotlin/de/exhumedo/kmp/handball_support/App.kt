@@ -118,11 +118,15 @@ fun App() {
     // Online auto-save to the coaching REST API whenever the session has an identity.
     // Stable LaunchedEffect keys: only restart when token/baseUrl presence toggles.
     val baseUrl = AppConfig.baseApiUrl
-    LaunchedEffect(presenter.token?.isNotBlank(), baseUrl.isNotBlank()) {
-        val token = presenter.token
+    val token = presenter.token
+    LaunchedEffect(token?.isNotBlank(), baseUrl.isNotBlank()) {
         if (token.isNullOrBlank() || baseUrl.isBlank()) {
             coachingSync.stopAutoSave()
             return@LaunchedEffect
+        }
+        // Drain any offline-queued evaluations before starting live auto-save.
+        if (coachingSync.hasPending()) {
+            coachingSync.drainQueue(baseUrl = baseUrl, token = token)
         }
         coachingSync.startAutoSave(
             scope = this,
