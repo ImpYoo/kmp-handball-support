@@ -42,7 +42,7 @@ fun DhbButton(
         modifier = modifier,
         enabled = enabled,
         interactionSource = interactionSource,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, if (enabled) DhbBlack else DhbBlack.copy(alpha = 0.38f)),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (active) DhbBlack else DhbWhite,
