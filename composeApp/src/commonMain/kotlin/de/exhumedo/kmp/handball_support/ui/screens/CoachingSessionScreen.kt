@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,6 +41,8 @@ import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
 import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
 import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
 import de.exhumedo.kmp.handball_support.ui.theme.Dimens
+import de.exhumedo.kmp.handball_support.ui.UserMenuButton
+import de.exhumedo.kmp.handball_support.ui.components.CoachingReportCard
 
 /**
  * "Coaching durchführen" — the live coaching session: stopwatch, scoreboard,
@@ -57,6 +60,10 @@ fun CoachingSessionScreen(
     history: CoachingHistoryPresenter,
     roster: RosterPresenter,
     matchSetup: MatchSetupPresenter,
+    username: String,
+    isLoggedIn: Boolean,
+    onOpenSettings: () -> Unit,
+    onLogout: () -> Unit,
     onNavigateHome: () -> Unit,
 ) {
     val expanded = remember { mutableStateMapOf<String, Boolean>() }
@@ -71,14 +78,13 @@ fun CoachingSessionScreen(
                 actions = {
                     SyncStatusChip(sync.status)
                     Spacer(Modifier.width(Dimens.spaceSm))
-                    DhbButton(
-                        onClick = {
-                            coaching.reset()
-                            history.clear()
-                        },
-                    ) { Text("Bogen zurücksetzen") }
-                    Spacer(Modifier.width(Dimens.spaceSm))
-                    DhbButton(onClick = onNavigateHome) { Text("Menü") }
+                    UserMenuButton(
+                        isLoggedIn = isLoggedIn,
+                        username = username,
+                        onSettings = onOpenSettings,
+                        onLogin = { },
+                        onLogout = onLogout,
+                    )
                 },
             )
             Box(
@@ -98,6 +104,14 @@ fun CoachingSessionScreen(
                         }
                     }
                     item(key = "session-stopwatch") { StopwatchPanel(stopwatch = stopwatch) }
+                    item(key = "session-toolbar") {
+                        SessionToolbar(
+                            onResetSheet = {
+                                coaching.reset()
+                                history.clear()
+                            },
+                        )
+                    }
                     item(key = "session-scoreboard") {
                         ScoreboardPanel(
                             scoreboard = scoreboard,
@@ -185,6 +199,16 @@ fun CoachingSessionScreen(
     }
 }
 
+@Composable
+private fun SessionToolbar(onResetSheet: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
+    ) {
+        DhbButton(onClick = onResetSheet) { Text("Bogen zurücksetzen") }
+    }
+}
+
 private fun sessionSubtitle(setup: MatchSetupPresenter): String {
     val home = setup.homeTeamAbbreviation.ifBlank { setup.homeTeamName }
     val guest = setup.guestTeamAbbreviation.ifBlank { setup.guestTeamName }
@@ -216,49 +240,6 @@ private fun SyncStatusChip(status: CoachingSessionSync.SyncStatus) {
     }
 }
 
-@Composable
-private fun CoachingReportCard(report: de.exhumedo.kmp.handball_support.client.CoachingReportResponseDto) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Dimens.cardCorner),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = Dimens.cardElevation,
-    ) {
-        Column(modifier = Modifier.padding(Dimens.spaceLg)) {
-            Text(
-                text = "Bewertung",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(Modifier.height(Dimens.spaceMd))
-            Text(
-                text = "Gesamtpunktzahl: ${report.totalScore} / ${report.maxTotalScore} (${report.percentage}%)",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Spacer(Modifier.height(Dimens.spaceSm))
-            report.rows.forEach { row ->
-                if (row.deductionPoints != 0 || row.defectGroups.any { it.selectedRootCauses.isNotEmpty() }) {
-                    Text(
-                        text = "${row.criterionName}: ${row.score}/${row.maxScore} (−${row.deductionPoints})",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    row.defectGroups.forEach { group ->
-                        group.selectedRootCauses.forEach { cause ->
-                            Text(
-                                text = "  • ${group.groupName}: ${cause.rootCauseName} ×${cause.count}",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(Dimens.spaceSm))
-                }
-            }
-        }
-    }
-}
-
 @Preview
 @Composable
 private fun CoachingSessionScreenPreview() {
@@ -270,6 +251,10 @@ private fun CoachingSessionScreenPreview() {
         history = remember { CoachingHistoryPresenter() },
         roster = remember { RosterPresenter() },
         matchSetup = remember { MatchSetupPresenter() },
+        username = "coach",
+        isLoggedIn = true,
+        onOpenSettings = {},
+        onLogout = {},
         onNavigateHome = {},
     )
 }

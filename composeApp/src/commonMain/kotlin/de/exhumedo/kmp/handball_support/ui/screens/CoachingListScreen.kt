@@ -41,6 +41,7 @@ import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
 import de.exhumedo.kmp.handball_support.ui.theme.DhbDialog
 import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
 import de.exhumedo.kmp.handball_support.ui.theme.Dimens
+import de.exhumedo.kmp.handball_support.ui.UserMenuButton
 import kotlinx.coroutines.launch
 
 private const val TAB_MINE = 0
@@ -58,6 +59,9 @@ fun CoachingListScreen(
     role: String?,
     initialTab: String?,
     onOpenEvaluation: (String) -> Unit,
+    onContinueEvaluation: (String) -> Unit,
+    onOpenSettings: () -> Unit,
+    onLogout: () -> Unit,
     onNavigateHome: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -89,6 +93,7 @@ fun CoachingListScreen(
     }
 
     LaunchedEffect(token) { load() }
+    LaunchedEffect(Unit) { load() }
 
     AppTheme {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -102,7 +107,13 @@ fun CoachingListScreen(
                 actions = {
                     DhbButton(onClick = { load() }) { Text("Aktualisieren") }
                     Spacer(Modifier.width(Dimens.spaceSm))
-                    DhbButton(onClick = onNavigateHome) { Text("Menü") }
+                    UserMenuButton(
+                        isLoggedIn = true,
+                        username = username,
+                        onSettings = onOpenSettings,
+                        onLogin = { },
+                        onLogout = onLogout,
+                    )
                 },
             )
             Box(
@@ -158,6 +169,7 @@ fun CoachingListScreen(
                                     evaluation = evaluation,
                                     canDelete = isAdmin() || evaluation.evaluatorUsername.equals(username, ignoreCase = true),
                                     onOpen = { onOpenEvaluation(evaluation.id) },
+                                    onContinue = { onContinueEvaluation(evaluation.id) },
                                     onDelete = { evaluationToDelete = evaluation },
                                 )
                             }
@@ -200,6 +212,7 @@ private fun CoachingEvaluationCard(
     evaluation: CoachingEvaluationResponseDto,
     canDelete: Boolean,
     onOpen: () -> Unit,
+    onContinue: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Surface(
@@ -236,6 +249,8 @@ private fun CoachingEvaluationCard(
                     )
                 }
                 DhbButton(onClick = onOpen) { Text("Öffnen") }
+                Spacer(Modifier.width(Dimens.spaceSm))
+                DhbButton(onClick = onContinue) { Text("Fortsetzen") }
                 if (canDelete) {
                     Spacer(Modifier.width(Dimens.spaceSm))
                     DhbButton(onClick = onDelete) { Text("Löschen") }
@@ -254,6 +269,9 @@ private fun CoachingListScreenPreview() {
         role = "referee-coach-admin",
         initialTab = null,
         onOpenEvaluation = {},
+        onContinueEvaluation = {},
+        onOpenSettings = {},
+        onLogout = {},
         onNavigateHome = {},
     )
 }

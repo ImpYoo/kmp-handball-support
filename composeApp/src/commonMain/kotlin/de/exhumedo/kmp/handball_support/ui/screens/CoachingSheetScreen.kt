@@ -33,6 +33,7 @@ import de.exhumedo.kmp.handball_support.ui.theme.Dimens
 @Composable
 fun CoachingSheetScreen(
     coaching: RefereeCoachingPresenter,
+    readOnly: Boolean = false,
     onNavigateHome: () -> Unit,
 ) {
     val expanded = remember { mutableStateMapOf<String, Boolean>() }
@@ -40,12 +41,14 @@ fun CoachingSheetScreen(
     AppTheme {
         Column(modifier = Modifier.fillMaxSize()) {
             DhbHeader(
-                title = "Coaching-Bogen",
+                title = if (readOnly) "Coaching-Bogen (Ansicht)" else "Coaching-Bogen",
                 subtitle = "HVNB Beobachterbogen",
                 onLogoClick = onNavigateHome,
                 actions = {
-                    DhbButton(onClick = coaching::reset) { Text("Zurücksetzen") }
-                    Spacer(Modifier.width(Dimens.spaceSm))
+                    if (!readOnly) {
+                        DhbButton(onClick = coaching::reset) { Text("Zurücksetzen") }
+                        Spacer(Modifier.width(Dimens.spaceSm))
+                    }
                     DhbButton(onClick = onNavigateHome) { Text("Menü") }
                 },
             )
@@ -60,7 +63,7 @@ fun CoachingSheetScreen(
                         .padding(Dimens.spaceLg),
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
                 ) {
-                    coachingSheet(presenter = coaching, expanded = expanded)
+                    coachingSheet(presenter = coaching, expanded = expanded, readOnly = readOnly)
                     item(key = "sheet-footer") { Spacer(Modifier.height(Dimens.spaceXl)) }
                 }
             }

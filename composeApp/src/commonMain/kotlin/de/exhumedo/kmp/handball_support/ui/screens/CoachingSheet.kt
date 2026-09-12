@@ -43,6 +43,27 @@ import de.exhumedo.kmp.handball_support.ui.theme.DhbRed
 import de.exhumedo.kmp.handball_support.ui.theme.Dimens
 
 /**
+ * Reconstructs a [RefereeCoachingPresenter] from a saved [CoachingReportResponseDto].
+ * Starts from the default catalog and applies the reported root-cause counts so the
+ * sheet can be rendered (read-only or continued) without losing the saved state.
+ */
+fun restoreCoachingFromReport(presenter: RefereeCoachingPresenter, report: de.exhumedo.kmp.handball_support.client.CoachingReportResponseDto) {
+    presenter.reset()
+    report.rows.forEach { row ->
+        row.defectGroups.forEach { group ->
+            group.selectedRootCauses.forEach { cause ->
+                val count = cause.count
+                if (count > 0) {
+                    repeat(count) { presenter.select(row.criterionId, group.groupId, cause.rootCauseId) }
+                } else if (count < 0) {
+                    repeat(-count) { presenter.deselect(row.criterionId, group.groupId, cause.rootCauseId) }
+                }
+            }
+        }
+    }
+}
+
+/**
  * Emits the referee-coaching sheet (HVNB "Beobachterbogen") into a [LazyListScope]:
  * a score summary, the two sections (A "Spielregeln", B "Persönlicher Eindruck")
  * and an expandable card per criterion.
@@ -58,6 +79,7 @@ import de.exhumedo.kmp.handball_support.ui.theme.Dimens
 fun LazyListScope.coachingSheet(
     presenter: RefereeCoachingPresenter,
     expanded: MutableMap<String, Boolean>,
+    readOnly: Boolean = false,
     onSelected: (criterionId: String, groupId: String, rootCauseId: String) -> Unit = { _, _, _ -> },
     onDeselected: (criterionId: String, groupId: String, rootCauseId: String) -> Unit = { _, _, _ -> },
 ) {
@@ -75,6 +97,7 @@ fun LazyListScope.coachingSheet(
         CriterionCard(
             criterion = criterion,
             expanded = expanded[criterion.id] == true,
+            readOnly = readOnly,
             onToggleExpand = { expanded[criterion.id] = expanded[criterion.id] != true },
             onSelect = { groupId, causeId ->
                 presenter.select(criterion.id, groupId, causeId)
@@ -92,6 +115,7 @@ fun LazyListScope.coachingSheet(
         CriterionCard(
             criterion = criterion,
             expanded = expanded[criterion.id] == true,
+            readOnly = readOnly,
             onToggleExpand = { expanded[criterion.id] = expanded[criterion.id] != true },
             onSelect = { groupId, causeId ->
                 presenter.select(criterion.id, groupId, causeId)
@@ -174,6 +198,7 @@ private fun SectionHeader(title: String) {
 private fun CriterionCard(
     criterion: Criterion,
     expanded: Boolean,
+    readOnly: Boolean,
     onToggleExpand: () -> Unit,
     onSelect: (groupId: String, rootCauseId: String) -> Unit,
     onDeselect: (groupId: String, rootCauseId: String) -> Unit,
@@ -231,6 +256,7 @@ private fun CriterionCard(
                     if (index > 0) Spacer(Modifier.height(Dimens.spaceMd))
                     DefectGroupBlock(
                         group = group,
+                        readOnly = readOnly,
                         onSelect = { causeId -> onSelect(group.id, causeId) },
                         onDeselect = { causeId -> onDeselect(group.id, causeId) },
                     )
@@ -243,6 +269,7 @@ private fun CriterionCard(
 @Composable
 private fun DefectGroupBlock(
     group: DefectGroup,
+    readOnly: Boolean,
     onSelect: (rootCauseId: String) -> Unit,
     onDeselect: (rootCauseId: String) -> Unit,
 ) {
@@ -257,6 +284,7 @@ private fun DefectGroupBlock(
         group.rootCauses.forEach { cause ->
             RootCauseStepper(
                 cause = cause,
+                readOnly = readOnly,
                 onIncrement = { onSelect(cause.id) },
                 onDecrement = { onDeselect(cause.id) },
             )
@@ -268,6 +296,7 @@ private fun DefectGroupBlock(
 @Composable
 private fun RootCauseStepper(
     cause: RootCause,
+    readOnly: Boolean,
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
 ) {
@@ -288,7 +317,9 @@ private fun RootCauseStepper(
             style = MaterialTheme.typography.bodyMedium,
             color = if (active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        DhbButton(onClick = onDecrement) { Text("-") }
+        if (!readOnly) {
+            DhbButton(onClick = onDecrement) { Text("-") }
+        }
         Box(
             modifier = Modifier.widthIn(min = 32.dp).padding(horizontal = Dimens.spaceSm),
             contentAlignment = Alignment.Center,
@@ -300,7 +331,9 @@ private fun RootCauseStepper(
                 color = countColor,
             )
         }
-        DhbButton(onClick = onIncrement) { Text("+") }
+        if (!readOnly) {
+            DhbButton(onClick = onIncrement) { Text("+") }
+        }
     }
 }
 

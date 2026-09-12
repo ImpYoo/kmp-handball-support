@@ -15,6 +15,12 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -36,6 +42,7 @@ import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
 import de.exhumedo.kmp.handball_support.ui.theme.DhbDialog
 import de.exhumedo.kmp.handball_support.ui.theme.DhbHeader
 import de.exhumedo.kmp.handball_support.ui.theme.Dimens
+import de.exhumedo.kmp.handball_support.ui.UserMenuButton
 
 /**
  * Coaching preparation: define the match data (teams + referees) and the team
@@ -44,6 +51,9 @@ import de.exhumedo.kmp.handball_support.ui.theme.Dimens
  * "Weiter zum Coaching" is enabled once both team names are filled in. When a
  * session already has data ([isSessionActive]), a reset-everything action is
  * offered (with confirmation).
+ *
+ * Account-scoped actions (settings, password change, admin, logout) are tucked
+ * behind a single header menu instead of cluttering the header with buttons.
  */
 @Composable
 fun CoachingSetupScreen(
@@ -61,8 +71,7 @@ fun CoachingSetupScreen(
     onResetAll: () -> Unit,
     onContinue: () -> Unit,
     onOpenList: () -> Unit,
-    onOpenAdmin: () -> Unit,
-    onOpenChangePassword: () -> Unit,
+    onOpenSettings: () -> Unit,
     onNavigateHome: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
@@ -77,21 +86,13 @@ fun CoachingSetupScreen(
                 subtitle = "Mannschaften, Schiedsrichter und Aufstellungen",
                 onLogoClick = onNavigateHome,
                 actions = {
-                    if (token == null) {
-                        DhbButton(onClick = { showLoginDialog = true }) { Text("Anmelden") }
-                    } else {
-                        DhbButton(onClick = onLogout) { Text("Abmelden ($username)") }
-                        Spacer(Modifier.width(Dimens.spaceSm))
-                        DhbButton(onClick = onOpenChangePassword) { Text("Passwort") }
-                        Spacer(Modifier.width(Dimens.spaceSm))
-                        DhbButton(onClick = onOpenList) { Text("Übersicht") }
-                        if (role.equals("admin", ignoreCase = true) || role.equals("referee-coach-admin", ignoreCase = true)) {
-                            Spacer(Modifier.width(Dimens.spaceSm))
-                            DhbButton(onClick = onOpenAdmin) { Text("Admin") }
-                        }
-                    }
-                    Spacer(Modifier.width(Dimens.spaceSm))
-                    DhbButton(onClick = onNavigateHome) { Text("Menü") }
+                    UserMenuButton(
+                        isLoggedIn = token != null,
+                        username = username,
+                        onSettings = onOpenSettings,
+                        onLogin = { showLoginDialog = true },
+                        onLogout = onLogout,
+                    )
                 },
             )
             Box(
@@ -133,6 +134,12 @@ fun CoachingSetupScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+
+                    if (token != null) {
+                        Spacer(Modifier.height(Dimens.spaceMd))
+                        OverviewCard(onOpenList = onOpenList)
+                    }
+
                     Spacer(Modifier.height(Dimens.spaceXl))
                 }
             }
@@ -206,6 +213,45 @@ private fun ActiveSessionCard(
     }
 }
 
+@Composable
+private fun OverviewCard(
+    onOpenList: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(Dimens.cardCorner),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shadowElevation = Dimens.cardElevation,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Description,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = Dimens.spaceMd),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Coaching-Übersicht",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(Dimens.spaceXs))
+                Text(
+                    text = "Gespeicherte Bewertungen öffnen oder löschen.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            DhbButton(onClick = onOpenList) { Text("Öffnen") }
+        }
+    }
+}
+
 @Preview
 @Composable
 private fun CoachingSetupScreenPreview() {
@@ -230,8 +276,7 @@ private fun CoachingSetupScreenPreview() {
         onResetAll = {},
         onContinue = {},
         onOpenList = {},
-        onOpenAdmin = {},
-        onOpenChangePassword = {},
+        onOpenSettings = {},
         onNavigateHome = {},
     )
 }
@@ -265,13 +310,10 @@ private fun CoachingLoginDialog(
                 onValueChange = onPasswordChange,
                 label = { Text("Passwort") },
                 singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
             )
         }
     }
 }
-
-
-
-
-
