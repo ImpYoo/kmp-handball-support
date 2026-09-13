@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import de.exhumedo.kmp.handball_support.client.CoachingApiClient
 import de.exhumedo.kmp.handball_support.client.CoachingEvaluationResponseDto
 import de.exhumedo.kmp.handball_support.config.AppConfig
+import de.exhumedo.kmp.handball_support.persistence.coachingCache
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
 import de.exhumedo.kmp.handball_support.ui.theme.DhbButton
 import de.exhumedo.kmp.handball_support.ui.theme.DhbDialog
@@ -51,6 +52,9 @@ private const val TAB_ALL = 1
  * Lists coaching evaluations. Referee coaches see their own under "Meine Coachings"
  * and all others under "Alle Coachings". Admins see everything in both tabs and can
  * open or delete entries.
+ *
+ * On network failure, cached data from the last successful fetch is shown with an
+ * "offline" banner so the list remains usable without a connection.
  */
 @Composable
 fun CoachingListScreen(
@@ -66,11 +70,13 @@ fun CoachingListScreen(
 ) {
     val scope = rememberCoroutineScope()
     val client = remember { CoachingApiClient() }
+    val cache = remember { coachingCache() }
     var selectedTab by remember { mutableIntStateOf(if (initialTab == "all") TAB_ALL else TAB_MINE) }
-    var myEvaluations by remember { mutableStateOf(listOf<CoachingEvaluationResponseDto>()) }
-    var allEvaluations by remember { mutableStateOf(listOf<CoachingEvaluationResponseDto>()) }
+    var myEvaluations by remember { mutableStateOf(cache.loadMyEvaluations() ?: emptyList()) }
+    var allEvaluations by remember { mutableStateOf(cache.loadAllEvaluations() ?: emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isOffline by remember { mutableStateOf(false) }
     var evaluationToDelete by remember { mutableStateOf<CoachingEvaluationResponseDto?>(null) }
 
     fun isAdmin(): Boolean = role.equals("admin", ignoreCase = true) || role.equals("referee-coach-admin", ignoreCase = true)
@@ -80,12 +86,27 @@ fun CoachingListScreen(
             isLoading = true
             errorMessage = null
             try {
-                myEvaluations = client.listMyEvaluations(AppConfig.baseApiUrl, token)
+                val mine = client.listMyEvaluations(AppConfig.baseApiUrl, token)
                     .sortedByDescending { it.createdAt }
-                allEvaluations = client.listAllEvaluations(AppConfig.baseApiUrl, token)
+                val all = client.listAllEvaluations(AppConfig.baseApiUrl, token)
                     .sortedByDescending { it.createdAt }
+                myEvaluations = mine
+                allEvaluations = all
+                cache.saveMyEvaluations(mine)
+                cache.saveAllEvaluations(all)
+                isOffline = false
             } catch (e: Throwable) {
-                errorMessage = e.message ?: "Fehler beim Laden"
+                // Serve cached data if available; otherwise show the error.
+                val cachedMine = cache.loadMyEvaluations()
+                val cachedAll = cache.loadAllEvaluations()
+                if (cachedMine != null) myEvaluations = cachedMine.sortedByDescending { it.createdAt }
+                if (cachedAll != null) allEvaluations = cachedAll.sortedByDescending { it.createdAt }
+                if (myEvaluations.isEmpty() && allEvaluations.isEmpty()) {
+                    errorMessage = e.message ?: "Fehler beim Laden"
+                    isOffline = false
+                } else {
+                    isOffline = true
+                }
             } finally {
                 isLoading = false
             }
@@ -126,6 +147,15 @@ fun CoachingListScreen(
                         .fillMaxWidth()
                         .padding(Dimens.spaceLg),
                 ) {
+                    if (isOffline) {
+                        Text(
+                            text = "Offline — gespeicherte Daten werden angezeigt.",
+                            color = MaterialTheme.colorScheme.tertiary,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = Dimens.spaceSm),
+                        )
+                    }
+
                     TabRow(selectedTabIndex = selectedTab) {
                         Tab(
                             selected = selectedTab == TAB_MINE,
@@ -190,6 +220,7 @@ fun CoachingListScreen(
                 scope.launch {
                     try {
                         client.deleteEvaluation(AppConfig.baseApiUrl, token, evaluation.id)
+                        cache.removeReport(evaluation.id)
                         load()
                     } catch (e: Throwable) {
                         errorMessage = e.message ?: "Löschen fehlgeschlagen"

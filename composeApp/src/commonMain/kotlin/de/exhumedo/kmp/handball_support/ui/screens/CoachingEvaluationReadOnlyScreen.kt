@@ -23,6 +23,7 @@ import de.exhumedo.kmp.handball_support.client.CoachingApiClient
 import de.exhumedo.kmp.handball_support.client.CoachingReportResponseDto
 import de.exhumedo.kmp.handball_support.config.AppConfig
 import de.exhumedo.kmp.handball_support.coaching.RefereeCoachingPresenter
+import de.exhumedo.kmp.handball_support.persistence.coachingCache
 import de.exhumedo.kmp.handball_support.ui.CoachingSheetScreen
 import de.exhumedo.kmp.handball_support.ui.restoreCoachingFromReport
 import de.exhumedo.kmp.handball_support.ui.theme.AppTheme
@@ -41,10 +42,12 @@ fun CoachingEvaluationReadOnlyScreen(
 ) {
     val scope = rememberCoroutineScope()
     val client = remember { CoachingApiClient() }
+    val cache = remember { coachingCache() }
     val viewPresenter = remember { RefereeCoachingPresenter() }
-    var report by remember { mutableStateOf<CoachingReportResponseDto?>(null) }
+    var report by remember { mutableStateOf<CoachingReportResponseDto?>(cache.loadReport(evaluationId)) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isOffline by remember { mutableStateOf(false) }
 
     fun load() {
         scope.launch {
@@ -54,8 +57,17 @@ fun CoachingEvaluationReadOnlyScreen(
                 val loaded = client.getReport(AppConfig.baseApiUrl, token, evaluationId)
                 restoreCoachingFromReport(viewPresenter, loaded)
                 report = loaded
+                cache.saveReport(evaluationId, loaded)
+                isOffline = false
             } catch (e: Throwable) {
-                errorMessage = e.message ?: "Fehler beim Laden"
+                val cached = cache.loadReport(evaluationId)
+                if (cached != null) {
+                    restoreCoachingFromReport(viewPresenter, cached)
+                    report = cached
+                    isOffline = true
+                } else {
+                    errorMessage = e.message ?: "Fehler beim Laden"
+                }
             } finally {
                 isLoading = false
             }
@@ -65,6 +77,15 @@ fun CoachingEvaluationReadOnlyScreen(
     LaunchedEffect(evaluationId) { load() }
 
     if (report != null) {
+        if (isOffline) {
+            Box(modifier = Modifier.fillMaxWidth().padding(Dimens.spaceSm)) {
+                Text(
+                    text = "Offline — gespeicherter Bericht wird angezeigt.",
+                    color = MaterialTheme.colorScheme.tertiary,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
         CoachingSheetScreen(
             coaching = viewPresenter,
             readOnly = true,
