@@ -67,6 +67,7 @@ data class PersistedHistoryEntry(
     val rootCauseId: String? = null,
     val goalTeam: String? = null,
     val selected: Boolean = true,
+    val verdict: String? = null,
     val attachment: PersistedAttachment? = null,
     val note: String = "",
 )

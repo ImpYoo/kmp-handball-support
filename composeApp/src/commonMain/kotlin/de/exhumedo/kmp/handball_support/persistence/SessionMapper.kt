@@ -5,6 +5,7 @@ import de.exhumedo.kmp.handball_support.coaching.CoachingHistoryEntry
 import de.exhumedo.kmp.handball_support.coaching.CoachingHistoryPresenter
 import de.exhumedo.kmp.handball_support.coaching.HistoryEventType
 import de.exhumedo.kmp.handball_support.coaching.RefereeCoachingPresenter
+import de.exhumedo.kmp.handball_support.coaching.RootCauseVerdict
 import de.exhumedo.kmp.handball_support.matchconsole.MatchSetupPresenter
 import de.exhumedo.kmp.handball_support.matchconsole.Player
 import de.exhumedo.kmp.handball_support.matchconsole.RosterPresenter
@@ -118,6 +119,7 @@ private fun CoachingHistoryEntry.toPersisted() = PersistedHistoryEntry(
     rootCauseId = rootCauseId,
     goalTeam = goalTeam?.name,
     selected = selected,
+    verdict = verdict?.name,
     attachment = attachment?.let {
         PersistedAttachment(
             team = it.team?.name,
@@ -141,6 +143,7 @@ private fun PersistedHistoryEntry.toEntry() = CoachingHistoryEntry(
     rootCauseId = rootCauseId,
     goalTeam = goalTeam?.let { name -> runCatching { RosterTeam.valueOf(name) }.getOrNull() },
     selected = selected,
+    verdict = verdict?.let { name -> runCatching { RootCauseVerdict.valueOf(name) }.getOrNull() },
     attachment = attachment?.let {
         CoachingHistoryAttachment(
             team = it.team?.let { name -> runCatching { RosterTeam.valueOf(name) }.getOrNull() },
