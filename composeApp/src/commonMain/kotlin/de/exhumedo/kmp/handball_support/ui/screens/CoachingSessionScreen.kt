@@ -32,6 +32,7 @@ import de.exhumedo.kmp.handball_support.coaching.CoachingHistoryEntry
 import de.exhumedo.kmp.handball_support.coaching.CoachingHistoryPresenter
 import de.exhumedo.kmp.handball_support.coaching.CoachingSessionSync
 import de.exhumedo.kmp.handball_support.coaching.RefereeCoachingPresenter
+import de.exhumedo.kmp.handball_support.coaching.RootCauseVerdict
 import de.exhumedo.kmp.handball_support.matchconsole.MatchSetupPresenter
 import de.exhumedo.kmp.handball_support.matchconsole.RosterPresenter
 import de.exhumedo.kmp.handball_support.matchconsole.RosterTeam
@@ -158,6 +159,28 @@ fun CoachingSessionScreen(
                                 defectGroupId = groupId,
                                 rootCauseId = rootCauseId,
                                 selected = false,
+                            )
+                        },
+                        onVerdict = { criterionId, groupId, rootCauseId, verdict ->
+                            when (verdict) {
+                                RootCauseVerdict.CORRECT_DECIDED, RootCauseVerdict.CORRECT_NOT_GIVEN -> {
+                                    coaching.deselect(criterionId, groupId, rootCauseId)
+                                }
+                                RootCauseVerdict.WRONG_GIVEN, RootCauseVerdict.WRONG_NOT_GIVEN -> {
+                                    coaching.select(criterionId, groupId, rootCauseId)
+                                }
+                                RootCauseVerdict.UNCLEAR -> {
+                                    // No score change — just record the observation.
+                                }
+                            }
+                            history.recordVerdict(
+                                gameTimeMillis = stopwatch.elapsedMillis,
+                                homeScore = scoreboard.homeScore,
+                                guestScore = scoreboard.guestScore,
+                                criterionId = criterionId,
+                                defectGroupId = groupId,
+                                rootCauseId = rootCauseId,
+                                verdict = verdict,
                             )
                         },
                     )

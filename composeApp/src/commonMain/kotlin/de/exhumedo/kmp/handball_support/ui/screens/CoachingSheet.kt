@@ -3,6 +3,7 @@ package de.exhumedo.kmp.handball_support.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +35,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.exhumedo.kmp.handball_support.coaching.RefereeCoachingPresenter
+import de.exhumedo.kmp.handball_support.coaching.RootCauseVerdict
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.Criterion
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.DefectGroup
 import de.exhumedo.kmp.handball_support.referee_coaching.domain.model.RootCause
@@ -82,6 +84,7 @@ fun LazyListScope.coachingSheet(
     readOnly: Boolean = false,
     onSelected: (criterionId: String, groupId: String, rootCauseId: String) -> Unit = { _, _, _ -> },
     onDeselected: (criterionId: String, groupId: String, rootCauseId: String) -> Unit = { _, _, _ -> },
+    onVerdict: (criterionId: String, groupId: String, rootCauseId: String, verdict: RootCauseVerdict) -> Unit = { _, _, _, _ -> },
 ) {
     item(key = "coaching-summary") {
         ScoreSummaryCard(
@@ -107,6 +110,9 @@ fun LazyListScope.coachingSheet(
                 presenter.deselect(criterion.id, groupId, causeId)
                 onDeselected(criterion.id, groupId, causeId)
             },
+            onVerdict = { groupId, causeId, verdict ->
+                onVerdict(criterion.id, groupId, causeId, verdict)
+            },
         )
     }
 
@@ -124,6 +130,9 @@ fun LazyListScope.coachingSheet(
             onDeselect = { groupId, causeId ->
                 presenter.deselect(criterion.id, groupId, causeId)
                 onDeselected(criterion.id, groupId, causeId)
+            },
+            onVerdict = { groupId, causeId, verdict ->
+                onVerdict(criterion.id, groupId, causeId, verdict)
             },
         )
     }
@@ -202,6 +211,7 @@ private fun CriterionCard(
     onToggleExpand: () -> Unit,
     onSelect: (groupId: String, rootCauseId: String) -> Unit,
     onDeselect: (groupId: String, rootCauseId: String) -> Unit,
+    onVerdict: (groupId: String, rootCauseId: String, verdict: RootCauseVerdict) -> Unit,
 ) {
     val markedCount = criterion.defectGroups.sumOf { group -> group.rootCauses.count { it.count != 0 } }
 
@@ -259,6 +269,7 @@ private fun CriterionCard(
                         readOnly = readOnly,
                         onSelect = { causeId -> onSelect(group.id, causeId) },
                         onDeselect = { causeId -> onDeselect(group.id, causeId) },
+                        onVerdict = { causeId, verdict -> onVerdict(group.id, causeId, verdict) },
                     )
                 }
             }
@@ -272,6 +283,7 @@ private fun DefectGroupBlock(
     readOnly: Boolean,
     onSelect: (rootCauseId: String) -> Unit,
     onDeselect: (rootCauseId: String) -> Unit,
+    onVerdict: (rootCauseId: String, verdict: RootCauseVerdict) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -287,6 +299,7 @@ private fun DefectGroupBlock(
                 readOnly = readOnly,
                 onIncrement = { onSelect(cause.id) },
                 onDecrement = { onDeselect(cause.id) },
+                onVerdict = { verdict -> onVerdict(cause.id, verdict) },
             )
             Spacer(Modifier.height(Dimens.spaceXs))
         }
@@ -299,6 +312,7 @@ private fun RootCauseStepper(
     readOnly: Boolean,
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
+    onVerdict: (verdict: RootCauseVerdict) -> Unit,
 ) {
     val active = cause.count != 0
     // Positive counts deduct points (red); negative counts grant a bonus (green).
@@ -307,32 +321,124 @@ private fun RootCauseStepper(
         cause.count < 0 -> ScoreGood
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = cause.name,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (!readOnly) {
-            DhbButton(onClick = onDecrement) { Text("-") }
-        }
-        Box(
-            modifier = Modifier.widthIn(min = 32.dp).padding(horizontal = Dimens.spaceSm),
-            contentAlignment = Alignment.Center,
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = cause.count.toString(),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = countColor,
+                text = cause.name,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (!readOnly) {
+                DhbButton(onClick = onDecrement) { Text("-") }
+            }
+            Box(
+                modifier = Modifier.widthIn(min = 32.dp).padding(horizontal = Dimens.spaceSm),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = cause.count.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = countColor,
+                )
+            }
+            if (!readOnly) {
+                DhbButton(onClick = onIncrement) { Text("+") }
+            }
+        }
+
+        if (!readOnly) {
+            Spacer(Modifier.height(Dimens.spaceXs))
+            // Verdict buttons: 2+1 layout for readability on narrow screens.
+            // Row 1: "Richtig entschieden" | "Richtig nicht gegeben" (green accent)
+            // Row 2: "Falsch gegeben" | "Falsch nicht gegeben" (red accent)
+            // Row 3: "Unklar" (full width, neutral)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                VerdictButton(
+                    label = "Richtig entschieden",
+                    accent = ScoreGood,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onVerdict(RootCauseVerdict.CORRECT_DECIDED) },
+                )
+                VerdictButton(
+                    label = "Richtig nicht gegeben",
+                    accent = ScoreGood,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onVerdict(RootCauseVerdict.CORRECT_NOT_GIVEN) },
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                VerdictButton(
+                    label = "Falsch gegeben",
+                    accent = DhbRed,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onVerdict(RootCauseVerdict.WRONG_GIVEN) },
+                )
+                VerdictButton(
+                    label = "Falsch nicht gegeben",
+                    accent = DhbRed,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onVerdict(RootCauseVerdict.WRONG_NOT_GIVEN) },
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            VerdictButton(
+                label = "Unklar",
+                accent = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onVerdict(RootCauseVerdict.UNCLEAR) },
             )
         }
-        if (!readOnly) {
-            DhbButton(onClick = onIncrement) { Text("+") }
+    }
+}
+
+/**
+ * Compact verdict button with a colored left accent bar and wrapped text.
+ * Uses [Color] to visually distinguish "Richtig" (green), "Falsch" (red),
+ * and "Unklar" (neutral) verdicts.
+ */
+@Composable
+private fun VerdictButton(
+    label: String,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(6.dp),
+        color = accent.copy(alpha = 0.06f),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.4f)),
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 3.dp, height = 14.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accent),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+            )
         }
     }
 }

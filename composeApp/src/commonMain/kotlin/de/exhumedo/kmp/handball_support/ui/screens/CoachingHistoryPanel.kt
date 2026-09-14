@@ -155,8 +155,14 @@ private fun formatHistoryEntry(entry: CoachingHistoryEntry): String {
             if (entry.selected) "Tor $team" else "Tor-Korrektur $team"
         }
         HistoryEventType.ROOT_CAUSE -> {
-            val sign = if (entry.selected) "+" else "-"
-            "$sign ${entry.criterionId}, ${entry.defectGroupId}: ${entry.rootCauseId}"
+            val verdictText = entry.verdict?.let { " [${it.displayName}]" } ?: ""
+            val sign = if (entry.verdict != null) {
+                // Verdict entries don't show +/−; the verdict text carries the meaning.
+                ""
+            } else {
+                if (entry.selected) "+" else "-"
+            }
+            "$sign ${entry.criterionId}, ${entry.defectGroupId}: ${entry.rootCauseId}$verdictText"
         }
     }
     return "$time  $score  $body"
