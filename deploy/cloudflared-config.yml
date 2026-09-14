@@ -1,0 +1,7 @@
+tunnel: ee176961-282e-463c-8a5b-59a9e0908dd7
+credentials-file: /etc/cloudflared/ee176961-282e-463c-8a5b-59a9e0908dd7.json
+
+ingress:
+  - hostname: referee-coaching.schaltstelle.org
+    service: http://handball-caddy:80
+  - service: http_status:404

@@ -54,6 +54,8 @@ DerivedData/
 server/.env.test
 .env.test
 server/data/
+deploy/cloudflared-credentials.json
+deploy/.env
 
 # Other potential temporary/generated files
 **/.DS_Store # Added for macOS for completeness

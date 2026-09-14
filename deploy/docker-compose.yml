@@ -3,9 +3,10 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: handball-cloudflared
     restart: unless-stopped
-    command: tunnel run
-    environment:
-      - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN}
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./cloudflared-config.yml:/etc/cloudflared/config.yml:ro
+      - ./cloudflared-credentials.json:/etc/cloudflared/ee176961-282e-463c-8a5b-59a9e0908dd7.json:ro
     networks:
       - handball-net
     depends_on:
