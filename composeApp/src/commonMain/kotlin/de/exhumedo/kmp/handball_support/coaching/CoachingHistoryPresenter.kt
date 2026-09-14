@@ -25,6 +25,21 @@ data class CoachingHistoryAttachment(
 enum class HistoryEventType { ROOT_CAUSE, GOAL }
 
 /**
+ * Qualitative verdict a coach can attach when marking a root cause.
+ *
+ * - [CORRECT_DECIDED] / [CORRECT_NOT_GIVEN] — referee got it right; decrements the count (like pressing "-").
+ * - [WRONG_GIVEN] / [WRONG_NOT_GIVEN] — referee got it wrong; increments the count (like pressing "+").
+ * - [UNCLEAR] — no score change; only records a history entry for later discussion.
+ */
+enum class RootCauseVerdict(val displayName: String) {
+    CORRECT_DECIDED("Richtig entschieden"),
+    CORRECT_NOT_GIVEN("Richtig nicht gegeben"),
+    WRONG_GIVEN("Falsch gegeben"),
+    WRONG_NOT_GIVEN("Falsch nicht gegeben"),
+    UNCLEAR("Unklar"),
+}
+
+/**
  * A single recorded change during a coaching session, captured with the game
  * time and score at that moment.
  *
@@ -46,6 +61,7 @@ data class CoachingHistoryEntry(
     val rootCauseId: String? = null,
     val goalTeam: RosterTeam? = null,
     val selected: Boolean = true,
+    val verdict: RootCauseVerdict? = null,
     val attachment: CoachingHistoryAttachment? = null,
     val note: String = "",
 )
@@ -106,6 +122,37 @@ class CoachingHistoryPresenter {
             type = HistoryEventType.GOAL,
             goalTeam = team,
             selected = scored,
+        )
+        return id
+    }
+
+    /**
+     * Records a verdict-tagged root-cause observation. Unlike [record], this does
+     * not imply a +/− direction — the caller handles the score adjustment separately.
+     * The verdict is stored for the history panel and later discussion.
+     */
+    fun recordVerdict(
+        gameTimeMillis: Long,
+        homeScore: Int,
+        guestScore: Int,
+        criterionId: String,
+        defectGroupId: String,
+        rootCauseId: String,
+        verdict: RootCauseVerdict,
+    ): String {
+        val id = "h${nextId++}"
+        entries = entries + CoachingHistoryEntry(
+            id = id,
+            gameTimeMillis = gameTimeMillis,
+            homeScore = homeScore,
+            guestScore = guestScore,
+            type = HistoryEventType.ROOT_CAUSE,
+            criterionId = criterionId,
+            defectGroupId = defectGroupId,
+            rootCauseId = rootCauseId,
+            selected = verdict != RootCauseVerdict.CORRECT_DECIDED &&
+                verdict != RootCauseVerdict.CORRECT_NOT_GIVEN,
+            verdict = verdict,
         )
         return id
     }
