@@ -1,13 +1,20 @@
-version: "3.8"
-
 services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: handball-cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARED_TUNNEL_TOKEN}
+    networks:
+      - handball-net
+    depends_on:
+      - caddy
+
   caddy:
     image: caddy:2-alpine
     container_name: handball-caddy
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -18,15 +25,6 @@ services:
   coaching-web:
     image: handball-coaching-web:local
     container_name: handball-coaching-web
-    restart: unless-stopped
-    expose:
-      - "8080"
-    networks:
-      - handball-net
-
-  rating-web:
-    image: handball-rating-web:local
-    container_name: handball-rating-web
     restart: unless-stopped
     expose:
       - "8080"
