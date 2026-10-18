@@ -6,6 +6,7 @@ import de.exhumedo.kmp.handball_support.application.MatchApplicationService
 import de.exhumedo.kmp.handball_support.application.PerformanceEvaluationApplicationService
 import de.exhumedo.kmp.handball_support.application.UuidEvaluationIdGenerator
 import de.exhumedo.kmp.handball_support.api.configureCoachingRouting
+import de.exhumedo.kmp.handball_support.api.configureNuLigaRouting
 import de.exhumedo.kmp.handball_support.api.configureHttp
 import de.exhumedo.kmp.handball_support.api.configurePhaseRouting
 import de.exhumedo.kmp.handball_support.api.configureRouting
@@ -15,6 +16,9 @@ import de.exhumedo.kmp.handball_support.auth.configureAuthRouting
 import de.exhumedo.kmp.handball_support.config.AppConfig
 import de.exhumedo.kmp.handball_support.config.AppConfigLoader
 import de.exhumedo.kmp.handball_support.domain.rating.repository.PerformanceEvaluationRepository
+import de.exhumedo.kmp.handball_support.nuliga.NuLigaApplicationService
+import de.exhumedo.kmp.handball_support.nuliga.NuLigaClient
+import de.exhumedo.kmp.handball_support.nuliga.client.KtorNuLigaClient
 import de.exhumedo.kmp.handball_support.persistence.JsonFilePerformanceEvaluationRepository
 import de.exhumedo.kmp.handball_support.persistence.MockPhaseRepository
 import de.exhumedo.kmp.handball_support.persistence.PerformanceEvaluationBasedVoteRepository
@@ -69,6 +73,7 @@ fun Application.module(
         appConfig.storage.performanceEvaluationsFile,
     ),
     authUserStore: AuthUserStore = defaultAuthUserStore(appConfig, clock),
+    nuLigaClient: NuLigaClient = KtorNuLigaClient(),
 ) {
     val tokenService = JwtTokenService(
         config = appConfig.jwt,
@@ -112,6 +117,7 @@ fun Application.module(
     configurePhaseRouting(matchApplicationService, tokenService, authUserStore)
     configureSportradarRouting(sportradarRepo, tokenService, authUserStore)
     configureCoachingRouting(coachingApplicationService, tokenService, authUserStore)
+    configureNuLigaRouting(NuLigaApplicationService(nuLigaClient), tokenService, authUserStore)
 }
 
 private fun defaultAuthUserStore(

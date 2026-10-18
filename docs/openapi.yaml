@@ -285,6 +285,40 @@ paths:
           $ref: '#/components/responses/ProblemForbidden'
         '404':
           $ref: '#/components/responses/ProblemNotFound'
+  /api/nuliga/match-resolutions:
+    post:
+      tags: [nuLiga]
+      summary: Resolve a nuLiga live match URL into teams, rosters and officials
+      description: |
+        Stateless resolution of a pasted nuLiga (HBDE live) match URL. The server
+        reads the meeting from the nuScoreLive REST backend and returns both teams
+        with rosters and IHF-lettered officials, the referees and table officials,
+        the venue and the kick-off time. Nothing is stored.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuLigaMatchResolutionRequest'
+      responses:
+        '200':
+          description: Match resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NuLigaMatchResolutionResponse'
+        '400':
+          $ref: '#/components/responses/ProblemBadRequest'
+        '401':
+          $ref: '#/components/responses/ProblemUnauthorized'
+        '404':
+          $ref: '#/components/responses/ProblemNotFound'
+        '502':
+          $ref: '#/components/responses/ProblemBadGateway'
+        '504':
+          $ref: '#/components/responses/ProblemGatewayTimeout'
 components:
   securitySchemes:
     bearerAuth:
@@ -323,6 +357,18 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+    ProblemBadGateway:
+      description: The upstream match source failed or could not be read
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProblemGatewayTimeout:
+      description: The upstream match source did not answer in time
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
     ProblemConflict:
       description: Conflict
       content:
@@ -340,6 +386,152 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    NuLigaMatchResolutionRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          description: A nuLiga live match URL, e.g. https://hbde-live.liga.nu/nuScoreLive/#/groups/489670/meetings/8278820
+    NuLigaMatchResolutionResponse:
+      type: object
+      required: [sourceId, sourceUrl, sourceMatchId, resolvedAt, match]
+      properties:
+        sourceId:
+          type: string
+        sourceUrl:
+          type: string
+        sourceMatchId:
+          type: string
+        resolvedAt:
+          type: integer
+          description: Epoch milliseconds of the resolution
+        match:
+          $ref: '#/components/schemas/NuLigaMatch'
+    NuLigaMatch:
+      type: object
+      required: [id, status, config, home, away, referees, tableOfficials, supervisors]
+      properties:
+        id:
+          type: string
+        scheduledAt:
+          type: integer
+          description: Kick-off as epoch milliseconds, when nuLiga publishes one
+        status:
+          $ref: '#/components/schemas/NuLigaStatus'
+        config:
+          $ref: '#/components/schemas/NuLigaConfig'
+        competition:
+          $ref: '#/components/schemas/NuLigaCompetition'
+        venue:
+          $ref: '#/components/schemas/NuLigaVenue'
+        home:
+          $ref: '#/components/schemas/NuLigaTeam'
+        away:
+          $ref: '#/components/schemas/NuLigaTeam'
+        referees:
+          type: array
+          items:
+            $ref: '#/components/schemas/NuLigaPerson'
+        tableOfficials:
+          type: array
+          items:
+            $ref: '#/components/schemas/NuLigaPerson'
+        supervisors:
+          type: array
+          items:
+            $ref: '#/components/schemas/NuLigaPerson'
+    NuLigaStatus:
+      type: object
+      required: [id, name, isLive, isFinished]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        isLive:
+          type: boolean
+        isFinished:
+          type: boolean
+    NuLigaConfig:
+      type: object
+      required: [periods, minutesPerPeriod]
+      properties:
+        periods:
+          type: integer
+        minutesPerPeriod:
+          type: integer
+    NuLigaCompetition:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    NuLigaVenue:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    NuLigaTeam:
+      type: object
+      required: [name, players, officials]
+      properties:
+        name:
+          type: string
+        logoUrl:
+          type: string
+          nullable: true
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/NuLigaPlayer'
+        officials:
+          type: array
+          items:
+            $ref: '#/components/schemas/NuLigaOfficial'
+    NuLigaPlayer:
+      type: object
+      required: [id, firstName, lastName]
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        number:
+          type: integer
+          nullable: true
+    NuLigaOfficial:
+      type: object
+      required: [id, firstName, lastName]
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        badge:
+          type: string
+          nullable: true
+          description: IHF designation A-E
+    NuLigaPerson:
+      type: object
+      required: [id, firstName, lastName, roleCode, position]
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        roleCode:
+          type: string
+          description: UPPER_SNAKE_CASE role code (REFEREE, TIMEKEEPER, SECRETARY, REFEREE_OBSERVER, SUPERVISOR, TECHNICAL_DELEGATE)
+        position:
+          type: integer
     Problem:
       type: object
       required: [type, title, status, detail, instance]
